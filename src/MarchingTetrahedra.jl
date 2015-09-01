@@ -1,51 +1,51 @@
-export isosurface
+"""
+Marching Tetrahedra is an algorithm for extracting a triangular
+mesh representation of an isosurface of a scalar volumetric
+function sampled on a rectangular grid.
 
+We divide the cube into six tetrahedra. [It is possible to divide
+a cube into five tetrahedra, but not in a way that a translated
+version of the division would share face diagonals. (It reqires a
+reflection.)]
+"""
+module MarchingTetrahedra
 
-#
-# *** Marching Tetrahedra ***
-#
-# Marching Tetrahedra is an algorithm for extracting a triangular
-# mesh representation of an isosurface of a scalar volumetric
-# function sampled on a rectangular grid.
-#
-# We divide the cube into six tetrahedra. [It is possible to divide
-# a cube into five tetrahedra, but not in a way that a translated
-# version of the division would share face diagonals. (It reqires a
-# reflection.)]
-#
-# Voxel corner and edge indexing conventions
-#
-#        Z
-#        |
-#
-#        5------5------6              Extra edges not drawn
-#       /|            /|              -----------
-#      8 |           6 |              - face diagonals
-#     /  9          /  10                - 13: 1 to 3
-#    8------7------7   |                 - 14: 1 to 8
-#    |   |         |   |                 - 15: 1 to 6
-#    |   1------1--|---2  -- Y           - 16: 5 to 7
-#    12 /          11 /                  - 17: 2 to 7
-#    | 4           | 2                   - 18: 4 to 7
-#    |/            |/                 - body diagonal
-#    4------3------3                     - 19: 1 to 7
-#
-#  /
-# X
+using GeometryTypes
+
+"""
+Voxel corner and edge indexing conventions
+
+        Z
+        |
+
+        5------5------6              Extra edges not drawn
+       /|            /|              -----------
+      8 |           6 |              - face diagonals
+     /  9          /  10                - 13: 1 to 3
+    8------7------7   |                 - 14: 1 to 8
+    |   |         |   |                 - 15: 1 to 6
+    |   1------1--|---2  -- Y           - 16: 5 to 7
+    12 /          11 /                  - 17: 2 to 7
+    | 4           | 2                   - 18: 4 to 7
+    |/            |/                 - body diagonal
+    4------3------3                     - 19: 1 to 7
+
+  /
+ X
+"""
 
 immutable VoxelIndices{T <: Integer}
-    voxCrnrPos::NTuple{8,Vector3{T}}
-    voxEdgeCrnrs::NTuple{19, Vector2{T}}
+    voxCrnrPos::NTuple{8,Vec{3,T}}
+    voxEdgeCrnrs::NTuple{19, Vec{2,T}}
     voxEdgeDir::NTuple{19,T}
     voxEdgeIx::Matrix{T}
-    subTets::Matrix{T}
     subTets::Matrix{T}
     tetEdgeCrnrs::Matrix{T}
     tetTri::Matrix{T}
 
     function VoxelIndices()
-        VT3 = Vector3{T}
-        VT2 = Vector2{T}
+        VT3 = Vec{3,T}
+        VT2 = Vec{2,T}
         voxCrnrPos = (VT3(0, 0, 0),
                       VT3(0, 1, 0),
                       VT3(1, 1, 0),
@@ -187,7 +187,7 @@ function vertPos{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::ITy
     corner1 = vxidx.voxCrnrPos[ixs[1]]
     corner2 = vxidx.voxCrnrPos[ixs[2]]
 
-    Vector3{T}(
+    Vec{3,T}(
           x+b*corner1[1]+a*corner2[1],
           y+b*corner1[2]+a*corner2[2],
           z+b*corner1[3]+a*corner2[3]
@@ -199,7 +199,7 @@ end
 function getVertId{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
                             nx::IType, ny::IType,
                             vals::Vector{T}, iso::T,
-                            vts::Dict{IType, Vector3{T}},
+                            vts::Dict{IType, Vec{3,T}},
                             eps::T, vxidx::VoxelIndices{IType})
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
@@ -222,7 +222,7 @@ end
 function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
                           x::IType, y::IType, z::IType,
                           nx::IType, ny::IType,
-                          vts::Dict{IType, Vector3{T}}, fcs::Vector{Face3{IType,0}},
+                          vts::Dict{IType, Vec{3,T}}, fcs::Vector{Face{3,IType,0}},
                           eps::T, vxidx::VoxelIndices{IType})
 
     # check each sub-tetrahedron in the voxel
@@ -236,7 +236,7 @@ function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
             e3 = vxidx.tetTri[j+2,tIx]
 
             # add the face to the list
-            push!(fcs, Face3{IType,0}(
+            push!(fcs, Face{3,IType,0}(
                       getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                       getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                       getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
@@ -244,11 +244,14 @@ function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
     end
 end
 
-# Given a 3D array and an isovalue, extracts a mesh represention of the
-# an approximate isosurface by the method of marching tetrahedra.
+
+"""
+Given a 3D array and an isovalue, extracts a mesh represention of the
+an approximate isosurface by the method of marching tetrahedra.
+"""
 function marchingTetrahedra{T<:Real, IT <: Integer}(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT})
-    vts        = Dict{indextype, Vector3{T}}()
-    fcs        = Array(Face3{indextype,0}, 0)
+    vts        = Dict{indextype, Vec{3,T}}()
+    fcs        = Array(Face{3,indextype,0}, 0)
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
     const vxidx = VoxelIndices{indextype}()
@@ -278,7 +281,7 @@ function isosurface(lsf, isoval, eps, indextype=Int, index_start=one(Int))
         vtD[x] = k
         k += one(indextype)
     end
-    fcAry = Face3{indextype, index_start-1}[Face3{indextype, index_start-1}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
+    fcAry = Face{3,indextype, index_start-1}[Face{3,indextype, index_start-1}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
     vtAry = collect(values(vts))
 
     (vtAry, fcAry)
@@ -287,17 +290,11 @@ end
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
 
 
-function call{MT <: Mesh, T}(::Type{MT}, volume::Array{T, 3}, iso_val::Real, eps_val=0.001)
+function call{MT <: AbstractMesh, T}(::Type{MT}, volume::Array{T, 3}, iso_val::Real, eps_val=0.001)
     iso_val = convert(T, iso_val)
     eps_val = convert(T, eps_val)
     vts, fcs = isosurface(volume, iso_val, eps_val)
     MT(vts, fcs)
 end
 
-function Mesh{T}(volume::Array{T,3}, iso_val::Real, eps_val=0.001)
-    iso_val = convert(T, iso_val)
-    eps_val = convert(T, eps_val)
-    vts, fcs = isosurface(volume, iso_val, eps_val)
-    Mesh(vts, fcs)
-end
-
+end # module
