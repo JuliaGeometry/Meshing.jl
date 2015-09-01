@@ -129,7 +129,6 @@ immutable VoxelIndices{T <: Integer}
             voxEdgeDir,
             voxEdgeIx,
             subTets,
-            subTets,
             tetEdgeCrnrs,
             tetTri)
     end
@@ -187,7 +186,7 @@ function vertPos{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::ITy
     corner1 = vxidx.voxCrnrPos[ixs[1]]
     corner2 = vxidx.voxCrnrPos[ixs[2]]
 
-    Vec{3,T}(
+    Point{3,T}(
           x+b*corner1[1]+a*corner2[1],
           y+b*corner1[2]+a*corner2[2],
           z+b*corner1[3]+a*corner2[3]
@@ -199,7 +198,7 @@ end
 function getVertId{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
                             nx::IType, ny::IType,
                             vals::Vector{T}, iso::T,
-                            vts::Dict{IType, Vec{3,T}},
+                            vts::Dict{IType, Point{3,T}},
                             eps::T, vxidx::VoxelIndices{IType})
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
@@ -222,7 +221,7 @@ end
 function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
                           x::IType, y::IType, z::IType,
                           nx::IType, ny::IType,
-                          vts::Dict{IType, Vec{3,T}}, fcs::Vector{Face{3,IType,0}},
+                          vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType,0}},
                           eps::T, vxidx::VoxelIndices{IType})
 
     # check each sub-tetrahedron in the voxel
@@ -250,7 +249,7 @@ Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
 function marchingTetrahedra{T<:Real, IT <: Integer}(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT})
-    vts        = Dict{indextype, Vec{3,T}}()
+    vts        = Dict{indextype, Point{3,T}}()
     fcs        = Array(Face{3,indextype,0}, 0)
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
