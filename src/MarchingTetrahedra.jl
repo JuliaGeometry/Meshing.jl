@@ -1,16 +1,4 @@
-"""
-Marching Tetrahedra is an algorithm for extracting a triangular
-mesh representation of an isosurface of a scalar volumetric
-function sampled on a rectangular grid.
 
-We divide the cube into six tetrahedra. [It is possible to divide
-a cube into five tetrahedra, but not in a way that a translated
-version of the division would share face diagonals. (It reqires a
-reflection.)]
-"""
-module MarchingTetrahedra
-
-using GeometryTypes
 
 """
 Voxel corner and edge indexing conventions
@@ -33,7 +21,6 @@ Voxel corner and edge indexing conventions
   /
  X
 """
-
 immutable VoxelIndices{T <: Integer}
     voxCrnrPos::NTuple{8,Vec{3,T}}
     voxEdgeCrnrs::NTuple{19, Vec{2,T}}
@@ -296,4 +283,8 @@ function call{MT <: AbstractMesh, T}(::Type{MT}, volume::Array{T, 3}, iso_val::R
     MT(vts, fcs)
 end
 
-end # module
+function call{MT <: AbstractMesh}(::Type{MT}, df::SignedDistanceField, eps_val=0.001)
+    vts, fcs = isosurface(df.data, 0.0, eps_val)
+    MT(vts, fcs)
+end
+

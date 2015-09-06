@@ -18,3 +18,14 @@ distance = distance + sigma*rand(2*N+1,2*N+1,2*N+1)
 lambda = N-2*sigma # isovalue
 
 msh = HomogenousMesh(distance,lambda)
+
+
+let
+    s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
+        sqrt(sum(v*v)) - 1 # sphere
+    end
+
+    msh = HomogenousMesh(s2)
+    @test length(vertices(msh)) == 973
+    @test length(faces(msh)) == 1830
+end
