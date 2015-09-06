@@ -1,6 +1,7 @@
 using Meshing
 using Base.Test
 using GeometryTypes
+using ProfileView
 
 # Produce a level set function that is a noisy version of the distance from
 # the origin (such that level sets are noisy spheres).
@@ -19,13 +20,17 @@ lambda = N-2*sigma # isovalue
 
 msh = HomogenousMesh(distance,lambda)
 
+s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
+    sqrt(sum(v*v)) - 1 # sphere
+end
 
-let
-    s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
-        sqrt(sum(v*v)) - 1 # sphere
-    end
+msh = HomogenousMesh(s2)
+@test length(vertices(msh)) == 973
+@test length(faces(msh)) == 1830
 
-    msh = HomogenousMesh(s2)
-    @test length(vertices(msh)) == 973
-    @test length(faces(msh)) == 1830
+if "--profile" in ARGS
+    HomogenousMesh(s2)
+    Profile.clear()
+    @profile HomogenousMesh(s2)
+    ProfileView.view()
 end

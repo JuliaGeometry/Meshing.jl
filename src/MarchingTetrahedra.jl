@@ -22,94 +22,92 @@ Voxel corner and edge indexing conventions
  X
 """
 immutable VoxelIndices{T <: Integer}
-    voxCrnrPos::NTuple{8,Vec{3,T}}
-    voxEdgeCrnrs::NTuple{19, Vec{2,T}}
+    voxCrnrPos::NTuple{8,NTuple{3,T}}
+    voxEdgeCrnrs::NTuple{19, NTuple{2,T}}
     voxEdgeDir::NTuple{19,T}
-    voxEdgeIx::Matrix{T}
-    subTets::Matrix{T}
-    tetEdgeCrnrs::Matrix{T}
-    tetTri::Matrix{T}
+    voxEdgeIx::NTuple{8,NTuple{8,T}}
+    subTets::NTuple{6,NTuple{4,T}}
+    tetEdgeCrnrs::NTuple{6,NTuple{2,T}}
+    tetTri::NTuple{16,NTuple{6,T}}
 
     function VoxelIndices()
-        VT3 = Vec{3,T}
-        VT2 = Vec{2,T}
-        voxCrnrPos = (VT3(0, 0, 0),
-                      VT3(0, 1, 0),
-                      VT3(1, 1, 0),
-                      VT3(1, 0, 0),
-                      VT3(0, 0, 1),
-                      VT3(0, 1, 1),
-                      VT3(1, 1, 1),
-                      VT3(1, 0, 1))
+        voxCrnrPos = ((0, 0, 0),
+                      (0, 1, 0),
+                      (1, 1, 0),
+                      (1, 0, 0),
+                      (0, 0, 1),
+                      (0, 1, 1),
+                      (1, 1, 1),
+                      (1, 0, 1))
         # the voxel IDs at either end of the tetrahedra edges, by edge ID
-        voxEdgeCrnrs = (VT2(1, 2),
-                        VT2(2, 3),
-                        VT2(4, 3),
-                        VT2(1, 4),
-                        VT2(5, 6),
-                        VT2(6, 7),
-                        VT2(8, 7),
-                        VT2(5, 8),
-                        VT2(1, 5),
-                        VT2(2, 6),
-                        VT2(3, 7),
-                        VT2(4, 8),
-                        VT2(1, 3),
-                        VT2(1, 8),
-                        VT2(1, 6),
-                        VT2(5, 7),
-                        VT2(2, 7),
-                        VT2(4, 7),
-                        VT2(1, 7))
+        voxEdgeCrnrs = ((1, 2),
+                        (2, 3),
+                        (4, 3),
+                        (1, 4),
+                        (5, 6),
+                        (6, 7),
+                        (8, 7),
+                        (5, 8),
+                        (1, 5),
+                        (2, 6),
+                        (3, 7),
+                        (4, 8),
+                        (1, 3),
+                        (1, 8),
+                        (1, 6),
+                        (5, 7),
+                        (2, 7),
+                        (4, 7),
+                        (1, 7))
 
         # direction codes:
         # 0 => +x, 1 => +y, 2 => +z,
         # 3 => +xy, 4 => +xz, 5 => +yz, 6 => +xyz
-        voxEdgeDir = convert(NTuple{19,T}, (1,0,1,0,1,0,1,0,2,2,2,2,3,4,5,3,4,5,6))
+        voxEdgeDir = (1,0,1,0,1,0,1,0,2,2,2,2,3,4,5,3,4,5,6)
 
         # For a pair of corner IDs, the edge ID joining them
         # 0 denotes a pair with no edge
-        voxEdgeIx = [0  1  13 4  9  15 19 14;
-                     1  0  2  0  0  10 17 0;
-                     13 2  0  3  0  0  11 0;
-                     4  0  3  0  0  0  18 12;
-                     9  0  0  0  0  5  16 8;
-                     15 10 0  0  5  0  6  0;
-                     19 17 11 18 16 6  0  7;
-                     14 0  0  12 8  0  7  0]
+        voxEdgeIx = ((0,1,13,4,9,15,19,14),
+                     (1,0,2,0,0,10,17,0),
+                     (13,2,0,3,0,0,11,0),
+                     (4,0,3,0,0,0,18,12),
+                     (9,0,0,0,0,5,16,8),
+                     (15,10,0,0,5,0,6,0),
+                     (19,17,11,18,16,6,0,7),
+                     (14,0,0,12,8,0,7,0))
 
         # voxel corners that comprise each of the six tetrahedra
-        subTets = [   1 3 2 7;
-                      1 8 4 7;
-                      1 4 3 7;
-                      1 2 6 7;
-                      1 5 8 7;
-                      1 6 5 7]'
+        subTets = ((1,3,2,7),
+                      (1,8,4,7),
+                      (1,4,3,7),
+                      (1,2,6,7),
+                      (1,5,8,7),
+                      (1,6,5,7))
         # tetrahedron corners for each edge (indices 1-4)
-        tetEdgeCrnrs = [1 2;
-                        2 3;
-                        1 3;
-                        1 4;
-                        2 4;
-                        3 4]'
+        tetEdgeCrnrs = ((1,2),
+                        (2,3),
+                        (1,3),
+                        (1,4),
+                        (2,4),
+                        (3,4))
 
         # triangle cases for a given tetrahedron edge code
-        tetTri = T[ 0 0 0 0 0 0;
-                    1 3 4 0 0 0;
-                    1 5 2 0 0 0;
-                    3 5 2 3 4 5;
-                    2 6 3 0 0 0;
-                    1 6 4 1 2 6;
-                    1 5 6 1 6 3;
-                    4 5 6 0 0 0;
-                    4 6 5 0 0 0;
-                    1 6 5 1 3 6;
-                    1 4 6 1 6 2;
-                    2 3 6 0 0 0;
-                    3 2 5 3 5 4;
-                    1 2 5 0 0 0;
-                    1 4 3 0 0 0;
-                    0 0 0 0 0 0]'
+        tetTri = ((0,0,0,0,0,0),
+                    (1,3,4,0,0,0),
+                    (1,5,2,0,0,0),
+                    (3,5,2,3,4,5),
+                    (2,6,3,0,0,0),
+                    (1,6,4,1,2,6),
+                    (1,5,6,1,6,3),
+                    (4,5,6,0,0,0),
+                    (4,6,5,0,0,0),
+                    (1,6,5,1,3,6),
+                    (1,4,6,1,6,2),
+                    (2,3,6,0,0,0),
+                    (3,2,5,3,5,4),
+                    (1,2,5,0,0,0),
+                    (1,4,3,0,0,0),
+                    (0,0,0,0,0,0))
 
         new(voxCrnrPos,
             voxEdgeCrnrs,
@@ -122,9 +120,10 @@ immutable VoxelIndices{T <: Integer}
 end
 # (X,Y,Z)-coordinates for each voxel corner ID
 
-
-# Checks if a voxel has faces. Should be false for most voxels.
-# This function should be made as fast as possible.
+"""
+Checks if a voxel has faces. Should be false for most voxels.
+This function should be made as fast as possible.
+"""
 function hasFaces{T<:Real}(vals::Vector{T}, iso::T)
     if vals[1] < iso
         for i=2:8
@@ -140,10 +139,10 @@ end
 
 # Determines which case in the triangle table we are dealing with
 function tetIx{T<:Real, IType <: Integer}(tIx::IType, vals::Vector{T}, iso::T, vxidx::VoxelIndices{IType})
-    ifelse(vals[vxidx.subTets[1, tIx]] < iso, 1, 0) +
-    ifelse(vals[vxidx.subTets[2, tIx]] < iso, 2, 0) +
-    ifelse(vals[vxidx.subTets[3, tIx]] < iso, 4, 0) +
-    ifelse(vals[vxidx.subTets[4, tIx]] < iso, 8, 0) + 1
+    ifelse(vals[vxidx.subTets[tIx][1]] < iso, 1, 0) +
+    ifelse(vals[vxidx.subTets[tIx][2]] < iso, 2, 0) +
+    ifelse(vals[vxidx.subTets[tIx][3]] < iso, 4, 0) +
+    ifelse(vals[vxidx.subTets[tIx][4]] < iso, 8, 0) + 1
 end
 
 # Determines a unique integer ID associated with the edge. This is used
@@ -198,9 +197,9 @@ end
 # Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 # corresponding voxel edge ID.
 function voxEdgeId{IType <: Integer}(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType})
-    srcVoxCrnr::IType = vxidx.subTets[vxidx.tetEdgeCrnrs[1, tetEdgeIx], subTetIx]
-    tgtVoxCrnr::IType = vxidx.subTets[vxidx.tetEdgeCrnrs[2, tetEdgeIx], subTetIx]
-    vxidx.voxEdgeIx[srcVoxCrnr, tgtVoxCrnr]
+    srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
+    tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
+    vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
 end
 
 # Processes a voxel, adding any new vertices and faces to the given
@@ -215,11 +214,11 @@ function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
     for i::IType = 1:6
         tIx = tetIx(i, vals, iso, vxidx)
         for j::IType in 1:3:4
-            e1 = vxidx.tetTri[j, tIx]
+            e1 = vxidx.tetTri[tIx][j]
             # bail if there are no more faces
             e1 == 0 && break
-            e2 = vxidx.tetTri[j+1,tIx]
-            e3 = vxidx.tetTri[j+2,tIx]
+            e2 = vxidx.tetTri[tIx][j+1]
+            e3 = vxidx.tetTri[tIx][j+2]
 
             # add the face to the list
             push!(fcs, Face{3,IType,0}(
