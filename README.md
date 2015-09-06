@@ -1,6 +1,6 @@
 # Meshing
 
-[![Build Status](https://travis-ci.org/juliageometry/Meshing.jl.svg?branch=master)](https://travis-ci.org/juliageometry/Meshing.jl)
+[![Build Status](https://travis-ci.org/JuliaGeometry/Meshing.jl.svg)](https://travis-ci.org/JuliaGeometry/Meshing.jl)
 
 This package provides meshing algorithms for use on distance fields.
 
