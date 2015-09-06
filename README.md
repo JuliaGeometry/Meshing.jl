@@ -1,6 +1,7 @@
 # Meshing
 
 [![Build Status](https://travis-ci.org/JuliaGeometry/Meshing.jl.svg)](https://travis-ci.org/JuliaGeometry/Meshing.jl)
+[![codecov.io](http://codecov.io/github/JuliaGeometry/Meshing.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaGeometry/Meshing.jl?branch=master)
 
 This package provides meshing algorithms for use on distance fields.
 
