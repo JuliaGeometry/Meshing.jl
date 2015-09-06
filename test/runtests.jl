@@ -1,7 +1,6 @@
 using Meshing
 using Base.Test
 using GeometryTypes
-using ProfileView
 
 # Produce a level set function that is a noisy version of the distance from
 # the origin (such that level sets are noisy spheres).
@@ -32,5 +31,5 @@ if "--profile" in ARGS
     HomogenousMesh(s2)
     Profile.clear()
     @profile HomogenousMesh(s2)
-    ProfileView.view()
+    #ProfileView.view()
 end
