@@ -125,12 +125,13 @@ Checks if a voxel has faces. Should be false for most voxels.
 This function should be made as fast as possible.
 """
 function hasFaces{T<:Real}(vals::Vector{T}, iso::T)
-    if vals[1] < iso
-        for i=2:8
+    @inbounds v = vals[1]
+    if v < iso
+        @inbounds for i=2:8
             vals[i] >= iso && return true
         end
     else
-        for i=2:8
+        @inbounds for i=2:8
             vals[i] <  iso && return true
         end
     end
