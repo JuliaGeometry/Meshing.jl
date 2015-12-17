@@ -138,50 +138,62 @@ function hasFaces{T<:Real}(vals::Vector{T}, iso::T)
     false
 end
 
-# Determines which case in the triangle table we are dealing with
+"""
+Determines which case in the triangle table we are dealing with
+"""
 function tetIx{T<:Real, IType <: Integer}(tIx::IType, vals::Vector{T}, iso::T, vxidx::VoxelIndices{IType})
-    ifelse(vals[vxidx.subTets[tIx][1]] < iso, 1, 0) +
-    ifelse(vals[vxidx.subTets[tIx][2]] < iso, 2, 0) +
-    ifelse(vals[vxidx.subTets[tIx][3]] < iso, 4, 0) +
-    ifelse(vals[vxidx.subTets[tIx][4]] < iso, 8, 0) + 1
+    @inbounds v1 = vals[vxidx.subTets[tIx][1]]
+    @inbounds v2 = vals[vxidx.subTets[tIx][2]]
+    @inbounds v3 = vals[vxidx.subTets[tIx][3]]
+    @inbounds v4 = vals[vxidx.subTets[tIx][4]]
+    ifelse(v1 < iso, 1, 0) +
+    ifelse(v2 < iso, 2, 0) +
+    ifelse(v3 < iso, 4, 0) +
+    ifelse(v4 < iso, 8, 0) + 1
 end
 
-# Determines a unique integer ID associated with the edge. This is used
-# as a key in the vertex dictionary. It needs to be both unambiguous (no
-# two edges get the same index) and unique (every edge gets the same ID
-# regardless of which of its neighboring voxels is asking for it) in order
-# for vertex sharing to be implemented properly.
+"""
+Determines a unique integer ID associated with the edge. This is used
+as a key in the vertex dictionary. It needs to be both unambiguous (no
+two edges get the same index) and unique (every edge gets the same ID
+regardless of which of its neighboring voxels is asking for it) in order
+for vertex sharing to be implemented properly.
+"""
 function vertId{IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
                 nx::IType, ny::IType, vxidx::VoxelIndices{IType})
-    dx = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
-    vxidx.voxEdgeDir[e]+7*(x-1+dx[1]+nx*(y-1+dx[2]+ny*(z-1+dx[3])))
+    @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
+    vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
-# Assuming an edge crossing, determines the point in space at which it
-# occurs.
-# eps represents the "bump" factor to keep vertices away from voxel
-# corners (thereby preventing degeneracies).
+"""
+Assuming an edge crossing, determines the point in space at which it
+occurs.
+eps represents the "bump" factor to keep vertices away from voxel
+corners (thereby preventing degeneracies).
+"""
 function vertPos{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
                           vals::Vector{T}, iso::T, eps::T, vxidx::VoxelIndices{IType})
 
-    ixs     = vxidx.voxEdgeCrnrs[e]
-    srcVal  = vals[ixs[1]]
-    tgtVal  = vals[ixs[2]]
+    @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
+    @inbounds srcVal  = vals[ixs[1]]
+    @inbounds tgtVal  = vals[ixs[2]]
     a       = (iso-srcVal)/(tgtVal-srcVal)
     a       = min(max(a, eps), one(T)-eps)
     b       = one(T)-a
-    corner1 = vxidx.voxCrnrPos[ixs[1]]
-    corner2 = vxidx.voxCrnrPos[ixs[2]]
+    @inbounds c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
+    @inbounds c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
 
     Point{3,T}(
-          x+b*corner1[1]+a*corner2[1],
-          y+b*corner1[2]+a*corner2[2],
-          z+b*corner1[3]+a*corner2[3]
+          x+b*c1x+a*c2x,
+          y+b*c1y+a*c2y,
+          z+b*c1z+a*c2z
     )
 end
 
-# Gets the vertex ID, adding it to the vertex dictionary if not already
-# present.
+"""
+Gets the vertex ID, adding it to the vertex dictionary if not already
+present.
+"""
 function getVertId{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
                             nx::IType, ny::IType,
                             vals::Vector{T}, iso::T,
@@ -195,16 +207,21 @@ function getVertId{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::I
     vId
 end
 
-# Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
-# corresponding voxel edge ID.
+"""
+Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
+corresponding voxel edge ID.
+"""
 function voxEdgeId{IType <: Integer}(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType})
-    srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
-    tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
-    vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
+    @inbounds srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
+    @inbounds tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
+    @inbounds v = vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
+    v
 end
 
-# Processes a voxel, adding any new vertices and faces to the given
-# containers as necessary.
+"""
+Processes a voxel, adding any new vertices and faces to the given
+containers as necessary.
+"""
 function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
                           x::IType, y::IType, z::IType,
                           nx::IType, ny::IType,
@@ -215,11 +232,11 @@ function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
     for i::IType = 1:6
         tIx = tetIx(i, vals, iso, vxidx)
         for j::IType in 1:3:4
-            e1 = vxidx.tetTri[tIx][j]
+            @inbounds e1 = vxidx.tetTri[tIx][j]
             # bail if there are no more faces
             e1 == 0 && break
-            e2 = vxidx.tetTri[tIx][j+1]
-            e3 = vxidx.tetTri[tIx][j+2]
+            @inbounds e2 = vxidx.tetTri[tIx][j+1]
+            @inbounds e3 = vxidx.tetTri[tIx][j+2]
 
             # add the face to the list
             push!(fcs, Face{3,IType,0}(
@@ -244,9 +261,9 @@ function marchingTetrahedra{T<:Real, IT <: Integer}(lsf::AbstractArray{T,3}, iso
     # process each voxel
     (nx::indextype,ny::indextype,nz::indextype) = size(lsf)
     vals = zeros(T, 8)
-    @inbounds for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
+    for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
         for l::indextype=1:8
-            vals[l] = lsf[i+vxidx.voxCrnrPos[l][1], j+vxidx.voxCrnrPos[l][2], k+vxidx.voxCrnrPos[l][3]]
+            @inbounds vals[l] = lsf[i+vxidx.voxCrnrPos[l][1], j+vxidx.voxCrnrPos[l][2], k+vxidx.voxCrnrPos[l][3]]
         end
         if hasFaces(vals,iso)
             procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps, vxidx)
