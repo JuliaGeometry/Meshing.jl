@@ -27,6 +27,11 @@ msh = HomogenousMesh(s2)
 @test length(vertices(msh)) == 973
 @test length(faces(msh)) == 1830
 
+# Vertex interpolation
+@test Meshing.vertex_interp(0, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,0.5,0)
+@test Meshing.vertex_interp(-1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,0,0)
+@test Meshing.vertex_interp(1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,1,0)
+
 if "--profile" in ARGS
     HomogenousMesh(s2)
     Profile.clear()
