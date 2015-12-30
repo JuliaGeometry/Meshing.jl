@@ -4,7 +4,9 @@ module Meshing
 
 using GeometryTypes
 
-include("MarchingTetrahedra.jl")
+include("marching_tetrahedra.jl")
 include("marching_cubes.jl")
+
+export marching_cubes
 
 end # module

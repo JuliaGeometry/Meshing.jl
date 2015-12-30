@@ -32,6 +32,15 @@ msh = HomogenousMesh(s2)
 @test Meshing.vertex_interp(-1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,0,0)
 @test Meshing.vertex_interp(1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,1,0)
 
+# marching cubes
+sdf = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+    sqrt(sum(dot(v,v))) - 1 # sphere
+end
+
+m = marching_cubes(sdf,0)
+@test length(vertices(m)) == 10968
+@test length(faces(m)) == 3656
+
 if "--profile" in ARGS
     HomogenousMesh(s2)
     Profile.clear()
