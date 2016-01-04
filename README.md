@@ -5,9 +5,9 @@
 
 This package provides meshing algorithms for use on distance fields.
 
-## Algorithms
-
+Including:
 * [Marching Tetrahedra](https://en.wikipedia.org/wiki/Marching_tetrahedra)
+* [Marching Cubes](https://en.wikipedia.org/wiki/Marching_cubes)
 
 ## Credits
 
