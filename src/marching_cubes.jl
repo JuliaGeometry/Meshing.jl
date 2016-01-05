@@ -278,6 +278,8 @@ const tri_table = ((-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1),
                     (-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1))
 
 """
+`marching_cubes(sdf::SignedDistanceField, [iso = 0.0,] [MT = HomogenousMesh{Point{3,Float64},Face{3,Int,0}}])`
+
 Construct a `HomogenousMesh` from a `SignedDistanceField` using the
 marching cubes algorithm. This method is faster than Marching Tetrahedra
 and generates fewer vertices and faces (about 1/4 as many).
@@ -285,7 +287,7 @@ However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT},
-                               iso,
+                               iso=0.0,
                                MT::Type{M}=HomogenousMesh{Point{3,Float64},Face{3,Int,0}})
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)

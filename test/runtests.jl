@@ -38,8 +38,10 @@ sdf = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
 end
 
 m = marching_cubes(sdf,0)
+m2 = marching_cubes(sdf)
 @test length(vertices(m)) == 10968
 @test length(faces(m)) == 3656
+@test m == m2
 
 if "--profile" in ARGS
     HomogenousMesh(s2)
