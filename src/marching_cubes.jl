@@ -375,11 +375,38 @@ function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT}
         end
 
         # Create the triangle
-        for i = 1:3:13
-            tri_table[cubeindex][i] == -1 && break
-            push!(vts, vertlist[tri_table[cubeindex][i  ]])
-            push!(vts, vertlist[tri_table[cubeindex][i+1]])
-            push!(vts, vertlist[tri_table[cubeindex][i+2]])
+        if tri_table[cubeindex][1] != -1
+            push!(vts, vertlist[tri_table[cubeindex][1]])
+            push!(vts, vertlist[tri_table[cubeindex][2]])
+            push!(vts, vertlist[tri_table[cubeindex][3]])
+            fct = length(vts)
+            push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
+        end
+        if tri_table[cubeindex][4] != -1
+            push!(vts, vertlist[tri_table[cubeindex][4]])
+            push!(vts, vertlist[tri_table[cubeindex][5]])
+            push!(vts, vertlist[tri_table[cubeindex][6]])
+            fct = length(vts)
+            push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
+        end
+        if tri_table[cubeindex][7] != -1
+            push!(vts, vertlist[tri_table[cubeindex][7]])
+            push!(vts, vertlist[tri_table[cubeindex][8]])
+            push!(vts, vertlist[tri_table[cubeindex][9]])
+            fct = length(vts)
+            push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
+        end
+        if tri_table[cubeindex][10] != -1
+            push!(vts, vertlist[tri_table[cubeindex][10]])
+            push!(vts, vertlist[tri_table[cubeindex][11]])
+            push!(vts, vertlist[tri_table[cubeindex][12]])
+            fct = length(vts)
+            push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
+        end
+        if tri_table[cubeindex][13] != -1
+            push!(vts, vertlist[tri_table[cubeindex][13]])
+            push!(vts, vertlist[tri_table[cubeindex][14]])
+            push!(vts, vertlist[tri_table[cubeindex][15]])
             fct = length(vts)
             push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
         end
@@ -389,7 +416,7 @@ end
 
 # Linearly interpolate the position where an isosurface cuts
 # an edge between two vertices, each with their own scalar value
-function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
+@inline function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
 
     abs(iso - valp1) < eps && return p1
     abs(iso - valp2) < eps && return p2
