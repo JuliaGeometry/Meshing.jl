@@ -288,7 +288,8 @@ Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT},
                                iso=0.0,
-                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int,0}})
+                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int,0}},
+                               eps = 0.00001)
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
@@ -327,51 +328,51 @@ function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT}
         # Find the vertices where the surface intersects the cube
         if (edge_table[cubeindex] & 1 != 0)
           vertlist[1] =
-             vertex_interp(iso,points[1],points[2],sdf[xi,yi,zi],sdf[xi+1,yi,zi])
+             vertex_interp(iso,points[1],points[2],sdf[xi,yi,zi],sdf[xi+1,yi,zi],eps)
         end
         if (edge_table[cubeindex] & 2 != 0)
           vertlist[2] =
-             vertex_interp(iso,points[2],points[3],sdf[xi+1,yi,zi],sdf[xi+1,yi+1,zi])
+             vertex_interp(iso,points[2],points[3],sdf[xi+1,yi,zi],sdf[xi+1,yi+1,zi],eps)
         end
         if (edge_table[cubeindex] & 4 != 0)
           vertlist[3] =
-             vertex_interp(iso,points[3],points[4],sdf[xi+1,yi+1,zi],sdf[xi,yi+1,zi])
+             vertex_interp(iso,points[3],points[4],sdf[xi+1,yi+1,zi],sdf[xi,yi+1,zi],eps)
         end
         if (edge_table[cubeindex] & 8 != 0)
           vertlist[4] =
-             vertex_interp(iso,points[4],points[1],sdf[xi,yi+1,zi],sdf[xi,yi,zi])
+             vertex_interp(iso,points[4],points[1],sdf[xi,yi+1,zi],sdf[xi,yi,zi],eps)
         end
         if (edge_table[cubeindex] & 16 != 0)
           vertlist[5] =
-             vertex_interp(iso,points[5],points[6],sdf[xi,yi,zi+1],sdf[xi+1,yi,zi+1])
+             vertex_interp(iso,points[5],points[6],sdf[xi,yi,zi+1],sdf[xi+1,yi,zi+1],eps)
         end
         if (edge_table[cubeindex] & 32 != 0)
           vertlist[6] =
-             vertex_interp(iso,points[6],points[7],sdf[xi+1,yi,zi+1],sdf[xi+1,yi+1,zi+1])
+             vertex_interp(iso,points[6],points[7],sdf[xi+1,yi,zi+1],sdf[xi+1,yi+1,zi+1],eps)
         end
         if (edge_table[cubeindex] & 64 != 0)
           vertlist[7] =
-             vertex_interp(iso,points[7],points[8],sdf[xi+1,yi+1,zi+1],sdf[xi,yi+1,zi+1])
+             vertex_interp(iso,points[7],points[8],sdf[xi+1,yi+1,zi+1],sdf[xi,yi+1,zi+1],eps)
         end
         if (edge_table[cubeindex] & 128 != 0)
           vertlist[8] =
-             vertex_interp(iso,points[8],points[5],sdf[xi,yi+1,zi+1],sdf[xi,yi,zi+1])
+             vertex_interp(iso,points[8],points[5],sdf[xi,yi+1,zi+1],sdf[xi,yi,zi+1],eps)
         end
         if (edge_table[cubeindex] & 256 != 0)
           vertlist[9] =
-             vertex_interp(iso,points[1],points[5],sdf[xi,yi,zi],sdf[xi,yi,zi+1])
+             vertex_interp(iso,points[1],points[5],sdf[xi,yi,zi],sdf[xi,yi,zi+1],eps)
         end
         if (edge_table[cubeindex] & 512 != 0)
           vertlist[10] =
-             vertex_interp(iso,points[2],points[6],sdf[xi+1,yi,zi],sdf[xi+1,yi,zi+1])
+             vertex_interp(iso,points[2],points[6],sdf[xi+1,yi,zi],sdf[xi+1,yi,zi+1],eps)
         end
         if (edge_table[cubeindex] & 1024 != 0)
           vertlist[11] =
-             vertex_interp(iso,points[3],points[7],sdf[xi+1,yi+1,zi],sdf[xi+1,yi+1,zi+1])
+             vertex_interp(iso,points[3],points[7],sdf[xi+1,yi+1,zi],sdf[xi+1,yi+1,zi+1],eps)
         end
         if (edge_table[cubeindex] & 2048 != 0)
           vertlist[12] =
-             vertex_interp(iso,points[4],points[8],sdf[xi,yi+1,zi],sdf[xi,yi+1,zi+1])
+             vertex_interp(iso,points[4],points[8],sdf[xi,yi+1,zi],sdf[xi,yi+1,zi+1],eps)
         end
 
         # Create the triangle
