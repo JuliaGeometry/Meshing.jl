@@ -288,7 +288,7 @@ Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT},
                                iso=0.0,
-                               MT::Type{M}=HomogenousMesh{Point{3,Float64},Face{3,Int,0}})
+                               MT::Type{M}=HomogenousMesh)
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
