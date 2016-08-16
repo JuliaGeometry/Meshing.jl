@@ -300,7 +300,7 @@ isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
     MT(vts, fcs)
 end
 
-function (::Type{MT}){MT <: AbstractMesh}(df::SignedDistanceField, eps_val=0.001)
+@compat function (::Type{MT}){MT <: AbstractMesh}(df::SignedDistanceField, eps_val=0.001)
     vts, fcs = isosurface(df.data, 0.0, eps_val)
     MT(vts, fcs)
 end
