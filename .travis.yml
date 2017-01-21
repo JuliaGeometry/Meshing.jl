@@ -8,7 +8,7 @@ julia:
   - nightly
 notifications:
   email: false
-# uncomment the following lines to override the default test script
+sudo: false
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("Meshing"); Pkg.test("Meshing"; coverage=true)'
