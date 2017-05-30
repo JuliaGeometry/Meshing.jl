@@ -278,7 +278,7 @@ const tri_table = ((-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1),
                     (-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1))
 
 """
-`marching_cubes(sdf::SignedDistanceField, [iso = 0.0,] [MT = HomogenousMesh{Point{3,Float64},Face{3,Int,0}}])`
+`marching_cubes(sdf::SignedDistanceField, [iso = 0.0,] [MT = HomogenousMesh{Point{3,Float64},Face{3,Int}}])`
 
 Construct a `HomogenousMesh` from a `SignedDistanceField` using the
 marching cubes algorithm. This method is faster than Marching Tetrahedra
@@ -288,7 +288,7 @@ Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT},
                                iso=0.0,
-                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int,0}})
+                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}})
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
@@ -296,7 +296,7 @@ function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT}
 
     # arrays for vertices and faces
     vts = Point{3,Float64}[]
-    fcs = Face{3,Int,0}[]
+    fcs = Face{3,Int}[]
     vertlist = Vector{Point{3,Float64}}(12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
@@ -381,7 +381,7 @@ function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT}
             push!(vts, vertlist[tri_table[cubeindex][i+1]])
             push!(vts, vertlist[tri_table[cubeindex][i+2]])
             fct = length(vts)
-            push!(fcs, Face{3,Int,0}(fct, fct-1, fct-2))
+            push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
         end
     end
     MT(vts,fcs)
