@@ -30,7 +30,7 @@ immutable VoxelIndices{T <: Integer}
     tetEdgeCrnrs::NTuple{6,NTuple{2,T}}
     tetTri::NTuple{16,NTuple{6,T}}
 
-    function VoxelIndices()
+    function VoxelIndices{T}() where {T <: Integer}
         voxCrnrPos = ((0, 0, 0),
                       (0, 1, 0),
                       (1, 1, 0),
@@ -109,7 +109,7 @@ immutable VoxelIndices{T <: Integer}
                     (1,4,3,0,0,0),
                     (0,0,0,0,0,0))
 
-        new(voxCrnrPos,
+        new{T}(voxCrnrPos,
             voxEdgeCrnrs,
             voxEdgeDir,
             voxEdgeIx,
@@ -225,7 +225,7 @@ containers as necessary.
 function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
                           x::IType, y::IType, z::IType,
                           nx::IType, ny::IType,
-                          vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType,0}},
+                          vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType}},
                           eps::T, vxidx::VoxelIndices{IType})
 
     # check each sub-tetrahedron in the voxel
@@ -239,7 +239,7 @@ function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
             @inbounds e3 = vxidx.tetTri[tIx][j+2]
 
             # add the face to the list
-            push!(fcs, Face{3,IType,0}(
+            push!(fcs, Face{3,IType}(
                       getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                       getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                       getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
@@ -254,7 +254,7 @@ an approximate isosurface by the method of marching tetrahedra.
 """
 function marchingTetrahedra{T<:Real, IT <: Integer}(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT})
     vts        = Dict{indextype, Point{3,T}}()
-    fcs        = Array(Face{3,indextype,0}, 0)
+    fcs        = Array{Face{3,indextype}}(0)
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
     const vxidx = VoxelIndices{indextype}()
@@ -284,7 +284,7 @@ function isosurface(lsf, isoval, eps, indextype=Int, index_start=one(Int))
         vtD[x] = k
         k += one(indextype)
     end
-    fcAry = Face{3,indextype, index_start-1}[Face{3,indextype, index_start-1}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
+    fcAry = Face{3,indextype}[Face{3,indextype}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
     vtAry = collect(values(vts))
 
     (vtAry, fcAry)
@@ -293,14 +293,14 @@ end
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
 
 
-@compat function (::Type{MT}){MT <: AbstractMesh, T}(volume::Array{T, 3}, iso_val::Real, eps_val=0.001)
+function (::Type{MT}){MT <: AbstractMesh, T}(volume::Array{T, 3}, iso_val::Real, eps_val=0.001)
     iso_val = convert(T, iso_val)
     eps_val = convert(T, eps_val)
     vts, fcs = isosurface(volume, iso_val, eps_val)
     MT(vts, fcs)
 end
 
-@compat function (::Type{MT}){MT <: AbstractMesh}(df::SignedDistanceField, eps_val=0.001)
+function (::Type{MT}){MT <: AbstractMesh}(df::SignedDistanceField, eps_val=0.001)
     vts, fcs = isosurface(df.data, 0.0, eps_val)
     MT(vts, fcs)
 end
