@@ -286,9 +286,9 @@ and generates fewer vertices and faces (about 1/4 as many).
 However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
-function marching_cubes{ST,FT,M<:AbstractMesh}(sdf::SignedDistanceField{3,ST,FT},
-                               iso=0.0,
-                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}})
+function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
+        iso=0.0,
+        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}}) where {ST,FT,M<:AbstractMesh}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)

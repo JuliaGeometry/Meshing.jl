@@ -21,7 +21,7 @@ Voxel corner and edge indexing conventions
   /
  X
 """
-immutable VoxelIndices{T <: Integer}
+struct VoxelIndices{T <: Integer}
     voxCrnrPos::NTuple{8,NTuple{3,T}}
     voxEdgeCrnrs::NTuple{19, NTuple{2,T}}
     voxEdgeDir::NTuple{19,T}
@@ -124,7 +124,7 @@ end
 Checks if a voxel has faces. Should be false for most voxels.
 This function should be made as fast as possible.
 """
-function hasFaces{T<:Real}(vals::Vector{T}, iso::T)
+function hasFaces(vals::Vector{T}, iso::T) where T<:Real
     @inbounds v = vals[1]
     if v < iso
         @inbounds for i=2:8
@@ -141,7 +141,7 @@ end
 """
 Determines which case in the triangle table we are dealing with
 """
-function tetIx{T<:Real, IType <: Integer}(tIx::IType, vals::Vector{T}, iso::T, vxidx::VoxelIndices{IType})
+function tetIx(tIx::IType, vals::Vector{T}, iso::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
     @inbounds v1 = vals[vxidx.subTets[tIx][1]]
     @inbounds v2 = vals[vxidx.subTets[tIx][2]]
     @inbounds v3 = vals[vxidx.subTets[tIx][3]]
@@ -159,8 +159,8 @@ two edges get the same index) and unique (every edge gets the same ID
 regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
-function vertId{IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
-                nx::IType, ny::IType, vxidx::VoxelIndices{IType})
+function vertId(e::IType, x::IType, y::IType, z::IType,
+nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
     @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
     vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
@@ -171,8 +171,8 @@ occurs.
 eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
-function vertPos{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
-                          vals::Vector{T}, iso::T, eps::T, vxidx::VoxelIndices{IType})
+function vertPos(e::IType, x::IType, y::IType, z::IType,
+vals::Vector{T}, iso::T, eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
     @inbounds srcVal  = vals[ixs[1]]
@@ -194,11 +194,11 @@ end
 Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
 """
-function getVertId{T<:Real, IType <: Integer}(e::IType, x::IType, y::IType, z::IType,
-                            nx::IType, ny::IType,
-                            vals::Vector{T}, iso::T,
-                            vts::Dict{IType, Point{3,T}},
-                            eps::T, vxidx::VoxelIndices{IType})
+function getVertId(e::IType, x::IType, y::IType, z::IType,
+ nx::IType, ny::IType,
+ vals::Vector{T}, iso::T,
+ vts::Dict{IType, Point{3,T}},
+ eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
     if !haskey(vts, vId)
@@ -211,7 +211,7 @@ end
 Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 corresponding voxel edge ID.
 """
-function voxEdgeId{IType <: Integer}(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType})
+function voxEdgeId(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
     @inbounds srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
     @inbounds tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
     @inbounds v = vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
@@ -222,11 +222,11 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox{T<:Real, IType <: Integer}(vals::Vector{T}, iso::T,
-                          x::IType, y::IType, z::IType,
-                          nx::IType, ny::IType,
-                          vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType}},
-                          eps::T, vxidx::VoxelIndices{IType})
+function procVox(vals::Vector{T}, iso::T,
+x::IType, y::IType, z::IType,
+nx::IType, ny::IType,
+vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType}},
+eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
     for i::IType = 1:6
@@ -252,7 +252,7 @@ end
 Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
-function marchingTetrahedra{T<:Real, IT <: Integer}(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT})
+function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT}) where {T<:Real, IT <: Integer}
     vts        = Dict{indextype, Point{3,T}}()
     fcs        = Array{Face{3,indextype}}(0)
     sizehint!(vts, div(length(lsf),8))
@@ -293,14 +293,14 @@ end
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
 
 
-function (::Type{MT}){MT <: AbstractMesh, T}(volume::Array{T, 3}, iso_val::Real, eps_val=0.001)
+function (::Type{MT})(volume::Array{T, 3}, iso_val::Real, eps_val=0.001) where {MT <: AbstractMesh, T}
     iso_val = convert(T, iso_val)
     eps_val = convert(T, eps_val)
     vts, fcs = isosurface(volume, iso_val, eps_val)
     MT(vts, fcs)
 end
 
-function (::Type{MT}){MT <: AbstractMesh}(df::SignedDistanceField, eps_val=0.001)
+function (::Type{MT})(df::SignedDistanceField, eps_val=0.001) where MT <: AbstractMesh
     vts, fcs = isosurface(df.data, 0.0, eps_val)
     MT(vts, fcs)
 end
