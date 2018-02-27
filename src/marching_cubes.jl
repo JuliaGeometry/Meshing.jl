@@ -287,12 +287,17 @@ However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
-        iso=0.0,
-        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}}) where {ST,FT,M<:AbstractMesh}
+                               iso=0.0,
+                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
+                               eps=0.00001) where {ST,FT,M<:AbstractMesh}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
-    s = Point{3,Float64}(w[1]/nx, w[2]/ny, w[3]/nz)
+    orig = origin(HyperRectangle(sdf))
+
+    # we subtract one from the length along each axis because
+    # an NxNxN SDF has N-1 cells on each axis
+    s = Point{3,Float64}(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
 
     # arrays for vertices and faces
     vts = Point{3,Float64}[]
@@ -315,63 +320,63 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         # Cube is entirely in/out of the surface
         edge_table[cubeindex] == 0 && continue
 
-        points = (Point{3,Float64}(xi-1,yi-1,zi-1).*s,
-                  Point{3,Float64}(xi,yi-1,zi-1).*s,
-                  Point{3,Float64}(xi,yi,zi-1).*s,
-                  Point{3,Float64}(xi-1,yi,zi-1).*s,
-                  Point{3,Float64}(xi-1,yi-1,zi).*s,
-                  Point{3,Float64}(xi,yi-1,zi).*s,
-                  Point{3,Float64}(xi,yi,zi).*s,
-                  Point{3,Float64}(xi-1,yi,zi).*s)
+        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
 
         # Find the vertices where the surface intersects the cube
         if (edge_table[cubeindex] & 1 != 0)
           vertlist[1] =
-             vertex_interp(iso,points[1],points[2],sdf[xi,yi,zi],sdf[xi+1,yi,zi])
+             vertex_interp(iso,points[1],points[2],sdf[xi,yi,zi],sdf[xi+1,yi,zi], eps)
         end
         if (edge_table[cubeindex] & 2 != 0)
           vertlist[2] =
-             vertex_interp(iso,points[2],points[3],sdf[xi+1,yi,zi],sdf[xi+1,yi+1,zi])
+             vertex_interp(iso,points[2],points[3],sdf[xi+1,yi,zi],sdf[xi+1,yi+1,zi], eps)
         end
         if (edge_table[cubeindex] & 4 != 0)
           vertlist[3] =
-             vertex_interp(iso,points[3],points[4],sdf[xi+1,yi+1,zi],sdf[xi,yi+1,zi])
+             vertex_interp(iso,points[3],points[4],sdf[xi+1,yi+1,zi],sdf[xi,yi+1,zi], eps)
         end
         if (edge_table[cubeindex] & 8 != 0)
           vertlist[4] =
-             vertex_interp(iso,points[4],points[1],sdf[xi,yi+1,zi],sdf[xi,yi,zi])
+             vertex_interp(iso,points[4],points[1],sdf[xi,yi+1,zi],sdf[xi,yi,zi], eps)
         end
         if (edge_table[cubeindex] & 16 != 0)
           vertlist[5] =
-             vertex_interp(iso,points[5],points[6],sdf[xi,yi,zi+1],sdf[xi+1,yi,zi+1])
+             vertex_interp(iso,points[5],points[6],sdf[xi,yi,zi+1],sdf[xi+1,yi,zi+1], eps)
         end
         if (edge_table[cubeindex] & 32 != 0)
           vertlist[6] =
-             vertex_interp(iso,points[6],points[7],sdf[xi+1,yi,zi+1],sdf[xi+1,yi+1,zi+1])
+             vertex_interp(iso,points[6],points[7],sdf[xi+1,yi,zi+1],sdf[xi+1,yi+1,zi+1], eps)
         end
         if (edge_table[cubeindex] & 64 != 0)
           vertlist[7] =
-             vertex_interp(iso,points[7],points[8],sdf[xi+1,yi+1,zi+1],sdf[xi,yi+1,zi+1])
+             vertex_interp(iso,points[7],points[8],sdf[xi+1,yi+1,zi+1],sdf[xi,yi+1,zi+1], eps)
         end
         if (edge_table[cubeindex] & 128 != 0)
           vertlist[8] =
-             vertex_interp(iso,points[8],points[5],sdf[xi,yi+1,zi+1],sdf[xi,yi,zi+1])
+             vertex_interp(iso,points[8],points[5],sdf[xi,yi+1,zi+1],sdf[xi,yi,zi+1], eps)
         end
         if (edge_table[cubeindex] & 256 != 0)
           vertlist[9] =
-             vertex_interp(iso,points[1],points[5],sdf[xi,yi,zi],sdf[xi,yi,zi+1])
+             vertex_interp(iso,points[1],points[5],sdf[xi,yi,zi],sdf[xi,yi,zi+1], eps)
         end
         if (edge_table[cubeindex] & 512 != 0)
           vertlist[10] =
-             vertex_interp(iso,points[2],points[6],sdf[xi+1,yi,zi],sdf[xi+1,yi,zi+1])
+             vertex_interp(iso,points[2],points[6],sdf[xi+1,yi,zi],sdf[xi+1,yi,zi+1], eps)
         end
         if (edge_table[cubeindex] & 1024 != 0)
           vertlist[11] =
-             vertex_interp(iso,points[3],points[7],sdf[xi+1,yi+1,zi],sdf[xi+1,yi+1,zi+1])
+             vertex_interp(iso,points[3],points[7],sdf[xi+1,yi+1,zi],sdf[xi+1,yi+1,zi+1], eps)
         end
         if (edge_table[cubeindex] & 2048 != 0)
           vertlist[12] =
-             vertex_interp(iso,points[4],points[8],sdf[xi,yi+1,zi],sdf[xi,yi+1,zi+1])
+             vertex_interp(iso,points[4],points[8],sdf[xi,yi+1,zi],sdf[xi,yi+1,zi+1], eps)
         end
 
         # Create the triangle
@@ -398,4 +403,15 @@ function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
     p = p1 + mu * (p2 - p1)
 
     return p
+end
+
+struct MarchingCubes{T} <: AbstractMeshingAlgorithm
+     iso::T
+     eps::T
+end
+
+MarchingCubes(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps)
+
+function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
+     marching_cubes(df, method.iso, MT, method.eps)
 end

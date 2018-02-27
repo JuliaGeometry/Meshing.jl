@@ -292,8 +292,24 @@ end
 
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
 
+"""
+The marchingTetrahedra function returns vertices on the (1-based) indices of the
+SDF's data, ignoring its actual bounds. This function adjusts the vertices in
+place so that they correspond to points within the SDF bounds.
+"""
+function _correct_vertices!(vts, sdf::SignedDistanceField)
+    bounds = HyperRectangle(sdf)
+    orig = origin(bounds)
+    w = widths(bounds)
+    s = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+    for i in eachindex(vts)
+        vts[i] = (vts[i] .- 1) .* s .+ orig  # subtract 1 to fix 1-indexing
+    end
+end
+
 
 function (::Type{MT})(volume::Array{T, 3}, iso_val::Real, eps_val=0.001) where {MT <: AbstractMesh, T}
+    Base.depwarn("(mesh type)(volume::Array, iso_val, eps_val) is deprecated. Please use: (mesh type)(volume, MarchingTetrahedra(iso_val, eps_val))", :Meshing_MT_array_eps)
     iso_val = convert(T, iso_val)
     eps_val = convert(T, eps_val)
     vts, fcs = isosurface(volume, iso_val, eps_val)
@@ -301,7 +317,26 @@ function (::Type{MT})(volume::Array{T, 3}, iso_val::Real, eps_val=0.001) where {
 end
 
 function (::Type{MT})(df::SignedDistanceField, eps_val=0.001) where MT <: AbstractMesh
+    Base.depwarn("(mesh type)(sdf::SignedDistanceField, eps_val) is deprecated. Please use: (mesh type)(sdf, MarchingTetrahedra(0, eps))", :Meshing_MT_sdf_eps)
     vts, fcs = isosurface(df.data, 0.0, eps_val)
+    _correct_vertices!(vts, df)
     MT(vts, fcs)
 end
 
+struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
+    iso::T
+    eps::T
+end
+
+MarchingTetrahedra(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps)
+
+function (::Type{MT})(sdf::SignedDistanceField, method::MarchingTetrahedra)::MT where {MT <: AbstractMesh}
+    vts, fcs = isosurface(sdf.data, method.iso, method.eps)
+    _correct_vertices!(vts, sdf)
+    MT(vts, fcs)
+end
+
+function (::Type{MT}){MT <: AbstractMesh, T}(volume::Array{T, 3}, method::MarchingTetrahedra)::MT
+    vts, fcs = isosurface(volume, convert(T, method.iso), convert(T, method.eps))
+    MT(vts, fcs)
+end
