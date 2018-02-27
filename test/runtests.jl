@@ -59,7 +59,7 @@ using GeometryTypes
         sdf = SignedDistanceField(f, bounds, resolution)
 
         for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
-            mesh = GLNormalMesh(sdf, algorithm)
+            mesh = @inferred GLNormalMesh(sdf, algorithm)
             # should be centered on the origin
             @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
             # and should be symmetric about the origin
