@@ -87,6 +87,11 @@ using GeometryTypes
             m3 = @test_nowarn GLNormalMesh(sdf, MarchingTetrahedra())
             @test vertices(m1) == vertices(m2) == vertices(m3)
             @test faces(m1) == faces(m2) == faces(m3)
+
+            m4 = @test_warn "is deprecated" GLNormalMesh(sdf.data, 0.5)
+            m5 = @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
+            @test vertices(m4) == vertices(m5)
+            @test faces(m4) == faces(m5)
         end
     end
 end
