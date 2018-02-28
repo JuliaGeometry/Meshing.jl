@@ -124,7 +124,7 @@ end
 Checks if a voxel has faces. Should be false for most voxels.
 This function should be made as fast as possible.
 """
-function hasFaces(vals::Vector{T}, iso::T) where T<:Real
+function hasFaces(vals::Vector{<:Real}, iso::Real)
     @inbounds v = vals[1]
     if v < iso
         @inbounds for i=2:8
@@ -141,7 +141,7 @@ end
 """
 Determines which case in the triangle table we are dealing with
 """
-function tetIx(tIx::IType, vals::Vector{T}, iso::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+function tetIx(tIx::IType, vals::Vector{<:Real}, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
     @inbounds v1 = vals[vxidx.subTets[tIx][1]]
     @inbounds v2 = vals[vxidx.subTets[tIx][2]]
     @inbounds v3 = vals[vxidx.subTets[tIx][3]]
@@ -160,7 +160,7 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 function vertId(e::IType, x::IType, y::IType, z::IType,
-nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
+nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
     @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
     vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
@@ -172,18 +172,17 @@ eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
 function vertPos(e::IType, x::IType, y::IType, z::IType,
-vals::Vector{T}, iso::T, eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+vals::Vector{T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
     @inbounds srcVal  = vals[ixs[1]]
     @inbounds tgtVal  = vals[ixs[2]]
-    a       = (iso-srcVal)/(tgtVal-srcVal)
-    a       = min(max(a, eps), one(T)-eps)
+    a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
     @inbounds c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
     @inbounds c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
 
-    Point{3,T}(
+    Point(
           x+b*c1x+a*c2x,
           y+b*c1y+a*c2y,
           z+b*c1z+a*c2z
@@ -196,9 +195,9 @@ present.
 """
 function getVertId(e::IType, x::IType, y::IType, z::IType,
  nx::IType, ny::IType,
- vals::Vector{T}, iso::T,
- vts::Dict{IType, Point{3,T}},
- eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+ vals::Vector{T}, iso::Real,
+ vts::Dict{IType, Point{3,S}},
+ eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
     if !haskey(vts, vId)
@@ -222,11 +221,11 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals::Vector{T}, iso::T,
+function procVox(vals::Vector{T}, iso::Real,
 x::IType, y::IType, z::IType,
 nx::IType, ny::IType,
-vts::Dict{IType, Point{3,T}}, fcs::Vector{Face{3,IType}},
-eps::T, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
+eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
     for i::IType = 1:6
@@ -252,8 +251,9 @@ end
 Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
-function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::T, eps::T, indextype::Type{IT}) where {T<:Real, IT <: Integer}
-    vts        = Dict{indextype, Point{3,T}}()
+function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, indextype::Type{IT}) where {T<:Real, IT <: Integer}
+    vertex_eltype = promote_type(T, typeof(iso), typeof(eps))
+    vts        = Dict{indextype, Point{3,vertex_eltype}}()
     fcs        = Array{Face{3,indextype}}(0)
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))

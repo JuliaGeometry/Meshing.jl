@@ -1,6 +1,7 @@
 using Meshing
 using Base.Test
 using GeometryTypes
+using ForwardDiff
 
 
 @testset "meshing" begin
@@ -24,6 +25,13 @@ using GeometryTypes
 
         s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        if "--profile" in ARGS
+            HomogenousMesh(s2, MarchingTetrahedra())
+            Profile.clear()
+            @profile HomogenousMesh(s2, MarchingTetrahedra())
+            #ProfileView.view()
         end
 
         msh = HomogenousMesh(s2, MarchingTetrahedra())
@@ -94,12 +102,54 @@ using GeometryTypes
             @test faces(m4) == faces(m5)
         end
     end
+
+    @testset "mixed types" begin
+        # https://github.com/JuliaGeometry/Meshing.jl/issues/9
+        samples = randn(10, 10, 10)
+        m1 = HomogenousMesh(SignedDistanceField(
+            HyperRectangle(Vec(0,0,0), Vec(1, 1, 1)),
+            samples), MarchingTetrahedra())
+        m2 = HomogenousMesh(SignedDistanceField(
+            HyperRectangle(Vec(0,0,0), Vec(1, 1, 1)),
+            Float32.(samples)), MarchingTetrahedra())
+        @test all(isapprox.(vertices(m1), vertices(m2), rtol=1e-6))
+        @test all(faces(m1) == faces(m2))
+
+        @testset "forward diff" begin
+            # Demonstrate that we can even take derivatives through the meshing algorithm
+            f = x -> norm(x)
+            bounds = HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2))
+            resolution = 0.1
+            sdf = SignedDistanceField(f, bounds, resolution)
+
+            function surface_distance_from_origin(isovalue)
+                # Compute the mean distance of each vertex in the isosurface
+                # mesh from the origin. This should return a value equal to the
+                # isovalue and should have a derivative of 1.0 w.r.t. the
+                # isovalue. This function is just meant to serve as an example
+                # of some quantity you might want to differentiate in a mesh,
+                # and has the benefit for testing of having a trivial expected
+                # solution.
+                mesh = HomogenousMesh(sdf, MarchingTetrahedra(isovalue))
+                mean(norm.(vertices(mesh)))
+            end
+
+            isoval = 0.85
+            @test surface_distance_from_origin(isoval) ≈ isoval atol=1e-2
+            @test ForwardDiff.derivative(surface_distance_from_origin, isoval) ≈ 1 atol=1e-2
+        end
+
+        @testset "type stability" begin
+            # verify that we don't lose type stability just by mixing arguments
+            # of different types
+            data = randn(5, 5, 5)
+            iso = 0.2
+            eps = 1e-4
+            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Int))
+            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Int32))
+            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Int64))
+        end
+    end
 end
 
 
-if "--profile" in ARGS
-    HomogenousMesh(s2)
-    Profile.clear()
-    @profile HomogenousMesh(s2)
-    #ProfileView.view()
-end
