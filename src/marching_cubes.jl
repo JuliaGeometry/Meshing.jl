@@ -302,7 +302,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
     # arrays for vertices and faces
     vts = Point{3,Float64}[]
     fcs = Face{3,Int}[]
-    vertlist = Vector{Point{3,Float64}}(12)
+    vertlist = Vector{Point{3,Float64}}(undef, 12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
         #Determine the index into the edge table which

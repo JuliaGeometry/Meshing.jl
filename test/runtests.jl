@@ -1,7 +1,10 @@
 using Meshing
-using Base.Test
+using Test
 using GeometryTypes
 using ForwardDiff
+using Profile
+using Statistics: mean
+using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
@@ -83,23 +86,15 @@ using ForwardDiff
         sdf = SignedDistanceField(f, bounds, resolution)
 
         @testset "marching cubes" begin
-            m1 = @test_nowarn marching_cubes(sdf, 0.0, GLNormalMesh)
-            m2 = @test_nowarn GLNormalMesh(sdf, MarchingCubes())
-            @test vertices(m1) == vertices(m2)
-            @test faces(m1) == faces(m2)
+            @test_nowarn GLNormalMesh(sdf, MarchingCubes())
+            @inferred GLNormalMesh(sdf, MarchingCubes())
         end
 
         @testset "marching tetrahedra" begin
-            m1 = @test_warn "is deprecated" GLNormalMesh(sdf)
-            m2 = @test_warn "is deprecated" GLNormalMesh(sdf, 1e-3)
-            m3 = @test_nowarn GLNormalMesh(sdf, MarchingTetrahedra())
-            @test vertices(m1) == vertices(m2) == vertices(m3)
-            @test faces(m1) == faces(m2) == faces(m3)
-
-            m4 = @test_warn "is deprecated" GLNormalMesh(sdf.data, 0.5)
-            m5 = @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
-            @test vertices(m4) == vertices(m5)
-            @test faces(m4) == faces(m5)
+            @test_nowarn GLNormalMesh(sdf, MarchingTetrahedra())
+            @inferred GLNormalMesh(sdf, MarchingTetrahedra())
+            @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
+            @inferred GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
         end
     end
 

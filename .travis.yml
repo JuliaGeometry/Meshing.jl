@@ -3,7 +3,8 @@ language: julia
 os:
   - linux
 julia:
-  - 0.6
+  - 0.7
+  - 1.0
   - nightly
 notifications:
   email: false
@@ -13,9 +14,6 @@ branches:
 matrix:
   allow_failures:
     - julia: nightly
-# uncomment the following lines to override the default test script
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd()); Pkg.build("Meshing"); Pkg.test("Meshing"; coverage=true)'
 after_success:
-  - julia -e 'cd(Pkg.dir("Meshing")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'using Pkg; import Meshing; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+

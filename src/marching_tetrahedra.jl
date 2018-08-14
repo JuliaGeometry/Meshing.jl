@@ -254,10 +254,10 @@ an approximate isosurface by the method of marching tetrahedra.
 function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, indextype::Type{IT}) where {T<:Real, IT <: Integer}
     vertex_eltype = promote_type(T, typeof(iso), typeof(eps))
     vts        = Dict{indextype, Point{3,vertex_eltype}}()
-    fcs        = Array{Face{3,indextype}}(0)
+    fcs        = Array{Face{3,indextype}}(undef, 0)
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
-    const vxidx = VoxelIndices{indextype}()
+    vxidx = VoxelIndices{indextype}()
     # process each voxel
     (nx::indextype,ny::indextype,nz::indextype) = size(lsf)
     vals = zeros(T, 8)
@@ -307,22 +307,6 @@ function _correct_vertices!(vts, sdf::SignedDistanceField)
     end
 end
 
-
-function (::Type{MT})(volume::Array{T, 3}, iso_val::Real, eps_val=0.001) where {MT <: AbstractMesh, T}
-    Base.depwarn("(mesh type)(volume::Array, iso_val, eps_val) is deprecated. Please use: (mesh type)(volume, MarchingTetrahedra(iso_val, eps_val))", :Meshing_MT_array_eps)
-    iso_val = convert(T, iso_val)
-    eps_val = convert(T, eps_val)
-    vts, fcs = isosurface(volume, iso_val, eps_val)
-    MT(vts, fcs)
-end
-
-function (::Type{MT})(df::SignedDistanceField, eps_val=0.001) where MT <: AbstractMesh
-    Base.depwarn("(mesh type)(sdf::SignedDistanceField, eps_val) is deprecated. Please use: (mesh type)(sdf, MarchingTetrahedra(0, eps))", :Meshing_MT_sdf_eps)
-    vts, fcs = isosurface(df.data, 0.0, eps_val)
-    _correct_vertices!(vts, df)
-    MT(vts, fcs)
-end
-
 struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
@@ -330,13 +314,13 @@ end
 
 MarchingTetrahedra(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps)
 
-function (::Type{MT})(sdf::SignedDistanceField, method::MarchingTetrahedra)::MT where {MT <: AbstractMesh}
+function (::Type{MT})(sdf::SignedDistanceField, method::MarchingTetrahedra) where {MT <: AbstractMesh}
     vts, fcs = isosurface(sdf.data, method.iso, method.eps)
     _correct_vertices!(vts, sdf)
-    MT(vts, fcs)
+    MT(vts, fcs)::MT
 end
 
-function (::Type{MT}){MT <: AbstractMesh, T}(volume::Array{T, 3}, method::MarchingTetrahedra)::MT
+function (::Type{MT})(volume::Array{T, 3}, method::MarchingTetrahedra) where {MT <: AbstractMesh, T}
     vts, fcs = isosurface(volume, convert(T, method.iso), convert(T, method.eps))
-    MT(vts, fcs)
+    MT(vts, fcs)::MT
 end
