@@ -412,6 +412,6 @@ end
 
 MarchingCubes(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps)
 
-function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
+function MT(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
      marching_cubes(df, method.iso, MT, method.eps)
 end
