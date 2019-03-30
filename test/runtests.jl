@@ -8,6 +8,31 @@ using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
+    @testset "surface nets" begin
+          sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+              sqrt(sum(dot(v,v))) - 1 # sphere
+          end
+          sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
+              (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+          end
+          sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
+          torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
+          @test length(vertices(sphere)) == 1832
+          @test length(vertices(torus)) == 5532
+          @test length(faces(sphere)) == 1830
+          @test length(faces(torus)) == 5532
+          @test for vt in vertices(sphere)
+              d = sqrt(sum(vt .^ 2))
+              if 0.001 < (d-1) < 0.001
+                  continue
+              else
+                  return false
+              end
+              true
+          end
+    end
+
+
     @testset "noisy spheres" begin
         # Produce a level set function that is a noisy version of the distance from
         # the origin (such that level sets are noisy spheres).
@@ -146,5 +171,3 @@ using LinearAlgebra: dot, norm
         end
     end
 end
-
-
