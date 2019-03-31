@@ -7,19 +7,19 @@ using Statistics: mean
 using LinearAlgebra: dot, norm
 using MeshIO
 using FileIO
+using BenchmarkTools
 
 
 @testset "meshing" begin
     @testset "surface nets" begin
         sn_sphere(x,y,z) = x*x + y*y + z*z - 1.0
-        dims = [[-1.0, 1.0, 0.25],
-                [-1.0, 1.0, 0.25],
-                [-1.0, 1.0, 0.25]]
+        dims = [[-1.0, 1.0, 0.01],
+                [-1.0, 1.0, 0.01],
+                [-1.0, 1.0, 0.01]]
         res = Array{Int}(undef,3)
         for i=1:3
             res[i] = 2 + ceil((dims[i][2] - dims[i][1]) / dims[i][3])
         end
-        @show res
         volume = Array{Float32}(undef,res[1] * res[2] * res[3])
         n = 1
         z=dims[3][1]-dims[3][3]
@@ -36,9 +36,8 @@ using FileIO
             end
             z+=dims[3][3]
           end
-          @show volume
-          @show length(volume)
           m = Meshing.surface_nets(volume,res)
+          @time Meshing.surface_nets(volume,res)
           save("sphere_sn.ply",m)
     end
 

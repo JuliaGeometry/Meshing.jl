@@ -42,12 +42,16 @@ const sn_edge_table = [0, 7, 25, 30, 98, 101, 123, 124, 168, 175, 177, 182, 202,
                        870, 794, 797, 771, 772, 212, 211, 205, 202, 182, 177,
                        175, 168, 124, 123, 101, 98, 30, 25, 7, 0]
 
-
+"""
+Generate a mesh using naive surface nets.
+This takes the center of mass of the voxel as the vertex for each cube.
+"""
 function surface_nets(data, dims)
     buffer = Array{Int}(undef,4096)
 
-    vertices = []
-    faces = []
+    vertices = Point{3,Float64}[]
+    faces = Face{4,Int}[]
+
     n = 0
     x = [0,0,0]
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
@@ -56,7 +60,7 @@ function surface_nets(data, dims)
 
     #Resize buffer if necessary
     if R[3]*2 > length(buffer)
-        buffer = Array{Int}(undef,R[3]*2)
+        resize!(buffer, R[3]*2)
     end
 
     # zero out the buffer TODO: do this at init?
@@ -157,7 +161,7 @@ function surface_nets(data, dims)
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
                 buffer[m+1] = length(vertices)
-                push!(vertices, v);
+                push!(vertices, Point{3,Float64}(v[1],v[2],v[3]));
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 for i=0:2
@@ -181,9 +185,9 @@ function surface_nets(data, dims)
 
                     #Remember to flip orientation depending on the sign of the corner.
                     if (mask & 1) != 0
-                        push!(faces,[buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1]);
+                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
                     else
-                        push!(faces,[buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1]);
+                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
                     end
                 end
                 x[1] += 1
@@ -200,14 +204,6 @@ function surface_nets(data, dims)
         R[3]=-R[3]
     end
     #All done!  Return the result
-    vts = Point{3,Float64}[]
-    fcs = Face{4,Int}[]
-    for face in faces
-        push!(fcs, Face{4,Int}(face...))
-    end
-    for vt in vertices
-        push!(vts, Point{3,Float64}(vt...))
-    end
-    @show vts, fcs
-    return HomogenousMesh(vts, fcs)
+
+    return HomogenousMesh(vertices, faces)
 end
