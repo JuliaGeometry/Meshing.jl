@@ -37,6 +37,7 @@ using FileIO
             z+=dims[3][3]
           end
           @show volume
+          @show length(volume)
           m = Meshing.surface_nets(volume,res)
           save("sphere_sn.ply",m)
     end

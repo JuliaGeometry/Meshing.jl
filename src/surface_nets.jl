@@ -326,10 +326,11 @@ function surface_nets(data, dims)
                     end
                     idx += dims[1]*(dims[2]-2)
                 end
-
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0 || mask == 0xff
                     x[1] += 1
+                    n += 1
+                    m += 1
                     continue
                 end
 
