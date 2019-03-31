@@ -5,6 +5,8 @@ using ForwardDiff
 using Profile
 using Statistics: mean
 using LinearAlgebra: dot, norm
+using MeshIO
+using FileIO
 
 
 @testset "meshing" begin
@@ -17,6 +19,7 @@ using LinearAlgebra: dot, norm
         for i=1:3
             res[i] = 2 + ceil((dims[i][2] - dims[i][1]) / dims[i][3])
         end
+        @show res
         volume = Array{Float32}(undef,res[1] * res[2] * res[3])
         n = 1
         z=dims[3][1]-dims[3][3]
@@ -33,7 +36,9 @@ using LinearAlgebra: dot, norm
             end
             z+=dims[3][3]
           end
-          x,y = Meshing.surface_nets(volume,res)
+          @show volume
+          m = Meshing.surface_nets(volume,res)
+          save("sphere_sn.ply",m)
     end
 
 

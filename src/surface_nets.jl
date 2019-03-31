@@ -286,14 +286,13 @@ function surface_nets(data, dims)
 
     #Resize buffer if necessary
     if R[3]*2 > length(buffer)
-        buffer = Array{Int32}(undef,R[3]*2)
+        buffer = Array{Int32}(0,R[3]*2)
     end
 
     #March over the voxel grid
     x[3] = 0
     while x[3]<dims[3]-1
-        @show x[3]
-        @show dims[3]-1
+
         # m is the pointer into the buffer we are going to use.
         # This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
@@ -301,12 +300,10 @@ function surface_nets(data, dims)
 
         x[2]=0
         while x[2]<dims[2]-1
-            @show x[2]
-            @show dims[2]-1
+
             x[1]=0
             while x[1] < dims[1]-1
-                @show x[1]
-                @show dims[1]-1
+
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
                 mask = 0
@@ -333,7 +330,7 @@ function surface_nets(data, dims)
                 end
 
                 #Sum up edge intersections
-                edge_mask = sn_edge_table[mask]
+                edge_mask = sn_edge_table[mask+1]
                 v = [0.0,0.0,0.0]
                 e_count = 0
 
@@ -349,8 +346,8 @@ function surface_nets(data, dims)
                     e_count += 1
 
                     #Now find the point of intersection
-                    e0 = cube_edges[ i<<1 ]       #Unpack vertices
-                    e1 = cube_edges[(i<<1)+1]
+                    e0 = cube_edges[(i<<1)+1]       #Unpack vertices
+                    e1 = cube_edges[(i<<1)+2]
                     g0 = grid[e0+1]                 #Unpack grid values
                     g1 = grid[e1+1]
                     t  = g0 - g1                 #Compute point of intersection
@@ -383,7 +380,7 @@ function surface_nets(data, dims)
                 end
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
-                buffer[m] = length(vertices)
+                buffer[m+1] = length(vertices)
                 push!(vertices, v);
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
@@ -395,7 +392,7 @@ function surface_nets(data, dims)
 
                     # i = axes we are point along.  iu, iv = orthogonal axes
                     iu = (i+1)%3
-                    iv = (i+2)%3;
+                    iv = (i+2)%3
 
                     #If we are on a boundary, skip it
                     if (x[iu+1] == 0 || x[iv+1] == 0)
@@ -403,17 +400,16 @@ function surface_nets(data, dims)
                     end
 
                     #Otherwise, look up adjacent edges in buffer
-                    du = R[iu+1]
-                    dv = R[iv+1];
+                    du = R[iu+1] + 1
+                    dv = R[iv+1] + 1
 
                     #Remember to flip orientation depending on the sign of the corner.
-                    if mask & 1 != 0
-                        push!(faces,[buffer[m+1], buffer[m-du+1], buffer[m-du-dv+1], buffer[m-dv+1]]);
+                    if (mask & 1) != 0
+                        push!(faces,[buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1]);
                     else
-                        push!(faces,[buffer[m+1], buffer[m-dv+1], buffer[m-du-dv+1], buffer[m-du+1]]);
+                        push!(faces,[buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1]);
                     end
                 end
-                @show "here"
                 x[1] += 1
                 n += 1
                 m += 1
@@ -428,5 +424,14 @@ function surface_nets(data, dims)
         R[3]=-R[3]
     end
     #All done!  Return the result
-    return vertices, faces
+    vts = Point{3,Float64}[]
+    fcs = Face{3,Int}[]
+    for face in faces
+        push!(fcs, Face{4,Int}(face...))
+    end
+    for vt in vertices
+        push!(vts, Point{3,Float64}(vt...))
+    end
+    @show vts, fcs
+    return HomogenousMesh(vts, fcs)
 end
