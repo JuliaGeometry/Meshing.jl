@@ -342,7 +342,7 @@ function surface_nets(data, dims)
                 for i=0:11
 
                     #Use edge mask to check if it is crossed
-                    if edge_mask & (1<<i) == 0
+                    if (edge_mask & (1<<i)) == 0
                         continue
                     end
 
@@ -390,7 +390,7 @@ function surface_nets(data, dims)
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 for i=0:2
                     #The first three entries of the edge_mask count the crossings along the edge
-                    if edge_mask & (1<<i) == 0
+                    if (edge_mask & (1<<i)) == 0
                         continue
                     end
 
@@ -404,8 +404,8 @@ function surface_nets(data, dims)
                     end
 
                     #Otherwise, look up adjacent edges in buffer
-                    du = R[iu+1] + 1
-                    dv = R[iv+1] + 1
+                    du = R[iu+1]
+                    dv = R[iv+1]
 
                     #Remember to flip orientation depending on the sign of the corner.
                     if (mask & 1) != 0
