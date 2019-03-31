@@ -205,5 +205,16 @@ function surface_nets(data, dims)
     end
     #All done!  Return the result
 
-    return HomogenousMesh(vertices, faces)
+    vertices, faces # faces are quads, indexed to vertices
+end
+
+struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
+     eps::T
+end
+
+NaiveSurfaceNets() = NaiveSurfaceNets(1e-6)
+
+function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
+    vts, fcs = surface_nets(reshape(sdf.data,(1,length(sdf.data))), size(sdf.data))
+    MT(vts, fcs)::MT
 end

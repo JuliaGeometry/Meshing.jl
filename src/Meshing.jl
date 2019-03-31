@@ -10,6 +10,7 @@ include("surface_nets.jl")
 
 export marching_cubes,
        MarchingCubes,
-       MarchingTetrahedra
+       MarchingTetrahedra,
+       NaiveSurfaceNets
 
 end # module

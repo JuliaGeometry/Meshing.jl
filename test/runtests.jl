@@ -7,37 +7,19 @@ using Statistics: mean
 using LinearAlgebra: dot, norm
 using MeshIO
 using FileIO
-using BenchmarkTools
 
 
 @testset "meshing" begin
     @testset "surface nets" begin
-        sn_sphere(x,y,z) = x*x + y*y + z*z - 1.0
-        dims = [[-1.0, 1.0, 0.01],
-                [-1.0, 1.0, 0.01],
-                [-1.0, 1.0, 0.01]]
-        res = Array{Int}(undef,3)
-        for i=1:3
-            res[i] = 2 + ceil((dims[i][2] - dims[i][1]) / dims[i][3])
-        end
-        volume = Array{Float32}(undef,res[1] * res[2] * res[3])
-        n = 1
-        z=dims[3][1]-dims[3][3]
-        for k=1:res[3]
-            y=dims[2][1]-dims[2][3]
-            for j=1:res[2]
-                x=dims[1][1]-dims[1][3]
-                for i=1:res[1]
-                    volume[n] = sn_sphere(x,y,z);
-                    n+=1
-                    x+=dims[1][3]
-                end
-                y+=dims[2][3]
-            end
-            z+=dims[3][3]
+          sdf = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+              sqrt(sum(dot(v,v))) - 1 # sphere
           end
-          m = Meshing.surface_nets(volume,res)
-          @time Meshing.surface_nets(volume,res)
+          torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.))) do v
+              (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # sphere
+          end
+          m = HomogenousMesh(sdf, NaiveSurfaceNets())
+          m2 = HomogenousMesh(torus, NaiveSurfaceNets())
+          save("torus.ply",m2)
           save("sphere_sn.ply",m)
     end
 
