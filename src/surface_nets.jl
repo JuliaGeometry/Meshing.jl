@@ -289,6 +289,10 @@ function surface_nets(data, dims)
         buffer = Array{Int32}(0,R[3]*2)
     end
 
+    for i = 1:length(buffer)
+      buffer[i] = 0
+   end
+
     #March over the voxel grid
     x[3] = 0
     while x[3]<dims[3]-1
@@ -420,12 +424,12 @@ function surface_nets(data, dims)
         end
         x[3] += 1
         n+=dims[1]
-        buf_no ^= 1
+        buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
     #All done!  Return the result
     vts = Point{3,Float64}[]
-    fcs = Face{3,Int}[]
+    fcs = Face{4,Int}[]
     for face in faces
         push!(fcs, Face{4,Int}(face...))
     end
