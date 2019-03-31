@@ -46,7 +46,7 @@ const sn_edge_table = [0, 7, 25, 30, 98, 101, 123, 124, 168, 175, 177, 182, 202,
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(data, dims,eps)
+function surface_nets(data, dims,eps,scale,origin)
     buffer = Array{Int}(undef,4096)
 
     vertices = Point{3,Float64}[]
@@ -156,7 +156,7 @@ function surface_nets(data, dims,eps)
                 #Now we just average the edge intersections and add them to coordinate
                 s = 1.0 / e_count
                 for i=1:3
-                    v[i] = x[i] + s * v[i]
+                    v[i] = (x[i] + s * v[i]) * scale[i] + origin[i]
                 end
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
@@ -215,6 +215,14 @@ end
 NaiveSurfaceNets() = NaiveSurfaceNets(1e-6)
 
 function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
-    vts, fcs = surface_nets(reshape(sdf.data,(1,length(sdf.data))), size(sdf.data), method.eps)
+    bounds = HyperRectangle(sdf)
+    orig = origin(bounds)
+    w = widths(bounds)
+    scale = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+    vts, fcs = surface_nets(reshape(sdf.data,(1,length(sdf.data))),
+                            size(sdf.data),
+                            method.eps,
+                            scale,
+                            orig)
     MT(vts, fcs)::MT
 end
