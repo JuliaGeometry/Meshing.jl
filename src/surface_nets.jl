@@ -47,7 +47,6 @@ Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
 function surface_nets(data, dims,eps,scale,origin)
-    buffer = Array{Int}(undef,4096)
 
     vertices = Point{3,Float64}[]
     faces = Face{4,Int}[]
@@ -58,15 +57,7 @@ function surface_nets(data, dims,eps,scale,origin)
     grid = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     buf_no = 1
 
-    #Resize buffer if necessary
-    if R[3]*2 > length(buffer)
-        resize!(buffer, R[3]*2)
-    end
-
-    # zero out the buffer TODO: do this at init?
-    for i = 1:length(buffer)
-      buffer[i] = 0
-   end
+    buffer = fill(zero(Int32),R[3]*2)
 
     #March over the voxel grid
     x[3] = 0
@@ -88,19 +79,56 @@ function surface_nets(data, dims,eps,scale,origin)
                 mask = 0
                 g = 0
                 idx = n
-                for k = 0:1
-                    for j=0:1
-                        for i=0:1
-                            p = data[idx+1]
-                            grid[g+1] = p
-                            mask |= (p < 0) ? (1<<g) : 0
-                            g += 1
-                            idx += 1
-                        end
-                        idx += dims[1]-2
-                    end
-                    idx += dims[1]*(dims[2]-2)
-                end
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                idx += dims[1]-2
+
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                idx += dims[1]-2
+                idx += dims[1]*(dims[2]-2)
+
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                idx += dims[1]-2
+
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                @inbounds p = data[idx+1]
+                @inbounds grid[g+1] = p
+                mask |= (p < 0) ? (1<<g) : 0
+                g += 1
+                idx += 1
+                idx += dims[1]-2
+                idx += dims[1]*(dims[2]-2)
+
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0 || mask == 0xff
                     x[1] += 1
