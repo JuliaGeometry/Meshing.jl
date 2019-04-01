@@ -51,6 +51,9 @@ function surface_nets(data, dims,eps,scale,origin)
     vertices = Point{3,Float64}[]
     faces = Face{4,Int}[]
 
+    sizehint!(vertices,ceil(Int,maximum(dims)^2/2))
+    sizehint!(faces,ceil(Int,maximum(dims)^2/2))
+
     n = 0
     x = [0,0,0]
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
@@ -59,9 +62,11 @@ function surface_nets(data, dims,eps,scale,origin)
 
     buffer = fill(zero(Int32),R[3]*2)
 
+    v = [0.0,0.0,0.0]
+
     #March over the voxel grid
     x[3] = 0
-    while x[3]<dims[3]-1
+    @inbounds while x[3]<dims[3]-1
 
         # m is the pointer into the buffer we are going to use.
         # This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
@@ -69,68 +74,45 @@ function surface_nets(data, dims,eps,scale,origin)
         m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
 
         x[2]=0
-        while x[2]<dims[2]-1
+        @inbounds while x[2]<dims[2]-1
 
             x[1]=0
-            while x[1] < dims[1]-1
+            @inbounds while x[1] < dims[1]-1
 
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = 0
-                g = 0
+                mask = 0x00
                 idx = n
                 @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
+                @inbounds grid[1] = p
+                (p < 0) && (mask |= 0x01)
+                @inbounds p = data[idx+2]
+                @inbounds grid[2] = p
+                (p < 0) && (mask |= 0x02)
+                @inbounds idx += dims[1]-2
+                @inbounds p = data[idx+3]
+                @inbounds grid[3] = p
+                (p < 0) && (mask |= 0x04)
+                @inbounds p = data[idx+4]
+                @inbounds grid[4] = p
+                (p < 0) && (mask |= 0x08)
+                @inbounds idx += dims[1]-2 + dims[1]*(dims[2]-2)
+                @inbounds p = data[idx+5]
+                @inbounds grid[5] = p
+                (p < 0) && (mask |= 0x10)
+                @inbounds p = data[idx+6]
+                @inbounds grid[6] = p
+                (p < 0) && (mask |= 0x20)
                 idx += dims[1]-2
-
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                idx += dims[1]-2
-                idx += dims[1]*(dims[2]-2)
-
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                idx += dims[1]-2
-
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                @inbounds p = data[idx+1]
-                @inbounds grid[g+1] = p
-                mask |= (p < 0) ? (1<<g) : 0
-                g += 1
-                idx += 1
-                idx += dims[1]-2
-                idx += dims[1]*(dims[2]-2)
+                @inbounds p = data[idx+7]
+                @inbounds grid[7] = p
+                (p < 0) && (mask |= 0x40)
+                @inbounds p = data[idx+8]
+                @inbounds grid[8] = p
+                (p < 0) && (mask |= 0x80)
 
                 # Check for early termination if cell does not intersect boundary
-                if mask == 0 || mask == 0xff
+                if mask == 0x00 || mask == 0xff
                     x[1] += 1
                     n += 1
                     m += 1
@@ -139,11 +121,13 @@ function surface_nets(data, dims,eps,scale,origin)
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask+1]
-                v = [0.0,0.0,0.0]
+                v[1] = 0.0
+                v[2] = 0.0
+                v[3] = 0.0
                 e_count = 0
 
                 #For every edge of the cube...
-                for i=0:11
+                @inbounds for i=0:11
 
                     #Use edge mask to check if it is crossed
                     if (edge_mask & (1<<i)) == 0
@@ -184,7 +168,7 @@ function surface_nets(data, dims,eps,scale,origin)
                 #Now we just average the edge intersections and add them to coordinate
                 s = 1.0 / e_count
                 for i=1:3
-                    v[i] = (x[i] + s * v[i]) * scale[i] + origin[i]
+                    @inbounds v[i] = (x[i] + s * v[i]) * scale[i] + origin[i]
                 end
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
@@ -212,7 +196,7 @@ function surface_nets(data, dims,eps,scale,origin)
                     dv = R[iv+1]
 
                     #Remember to flip orientation depending on the sign of the corner.
-                    if (mask & 1) != 0
+                    if (mask & 0x01) != 0x00
                         push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
                     else
                         push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
@@ -243,7 +227,7 @@ end
 NaiveSurfaceNets() = NaiveSurfaceNets(1e-6)
 
 function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
-    bounds = HyperRectangle(sdf)
+    bounds = sdf.bounds
     orig = origin(bounds)
     w = widths(bounds)
     scale = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
