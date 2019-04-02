@@ -57,7 +57,6 @@ function surface_nets(data, dims,eps,scale,origin)
     n = 0
     x = [0,0,0]
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
-    grid = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     buf_no = 1
 
     buffer = fill(zero(Int32),R[3]*2)
@@ -82,34 +81,24 @@ function surface_nets(data, dims,eps,scale,origin)
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
                 mask = 0x00
-                idx = n
-                @inbounds p = data[idx+1]
-                @inbounds grid[1] = p
-                (p < 0) && (mask |= 0x01)
-                @inbounds p = data[idx+2]
-                @inbounds grid[2] = p
-                (p < 0) && (mask |= 0x02)
-                @inbounds idx += dims[1]-2
-                @inbounds p = data[idx+3]
-                @inbounds grid[3] = p
-                (p < 0) && (mask |= 0x04)
-                @inbounds p = data[idx+4]
-                @inbounds grid[4] = p
-                (p < 0) && (mask |= 0x08)
-                @inbounds idx += dims[1]-2 + dims[1]*(dims[2]-2)
-                @inbounds p = data[idx+5]
-                @inbounds grid[5] = p
-                (p < 0) && (mask |= 0x10)
-                @inbounds p = data[idx+6]
-                @inbounds grid[6] = p
-                (p < 0) && (mask |= 0x20)
-                idx += dims[1]-2
-                @inbounds p = data[idx+7]
-                @inbounds grid[7] = p
-                (p < 0) && (mask |= 0x40)
-                @inbounds p = data[idx+8]
-                @inbounds grid[8] = p
-                (p < 0) && (mask |= 0x80)
+                @inbounds grid = (data[n+1],
+                                  data[n+2],
+                                  data[n+dims[1]+1],
+                                  data[n+dims[1]+2],
+                                  data[n+dims[1]*2+1 + dims[1]*(dims[2]-2)],
+                                  data[n+dims[1]*2+2 + dims[1]*(dims[2]-2)],
+                                  data[n+dims[1]*3+1 + dims[1]*(dims[2]-2)],
+                                  data[n+dims[1]*3+2 + dims[1]*(dims[2]-2)])
+
+
+                (grid[1] < 0.0) && (mask |= 0x01)
+                (grid[2] < 0.0) && (mask |= 0x02)
+                (grid[3] < 0.0) && (mask |= 0x04)
+                (grid[4] < 0.0) && (mask |= 0x08)
+                (grid[5] < 0.0) && (mask |= 0x10)
+                (grid[6] < 0.0) && (mask |= 0x20)
+                (grid[7] < 0.0) && (mask |= 0x40)
+                (grid[8] < 0.0) && (mask |= 0x80)
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff
