@@ -5,9 +5,6 @@ using ForwardDiff
 using Profile
 using Statistics: mean
 using LinearAlgebra: dot, norm
-using MeshIO
-using FileIO
-using BenchmarkTools
 
 
 @testset "meshing" begin
