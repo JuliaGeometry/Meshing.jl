@@ -85,9 +85,7 @@ using LinearAlgebra: dot, norm
         resolution = 0.1
         sdf = SignedDistanceField(f, bounds, resolution)
 
-        for algorithm in (MarchingCubes(0.5),
-                          MarchingTetrahedra(0.5),
-                          NaiveSurfaceNets(0.5))
+        for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
             mesh = @inferred GLNormalMesh(sdf, algorithm)
             # should be centered on the origin
             @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
@@ -95,6 +93,16 @@ using LinearAlgebra: dot, norm
             @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
             @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
         end
+        # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
+        # so a larger tolerance is needed for this one. In addition,
+        # quad -> triangle conversion is not functioning correctly
+        # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
+        mesh = @inferred GLNormalMesh(sdf, NaiveSurfaceNets(0.5))
+        # should be centered on the origin
+        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+        # and should be symmetric about the origin
+        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5] atol=0.2
+        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
     end
 
     @testset "AbstractMeshingAlgorithm interface" begin
@@ -172,10 +180,10 @@ using LinearAlgebra: dot, norm
                                             0.1, Float16) do v
                 (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
             end
-            @test typeof(HomogenousMesh(sdf,NaiveSurfaceNets())) ==
-                         HomgenousMesh{Face{4,Int},Point{3,Float16}}
-            m2 = HomogenousMesh(sdf,MarchingTetrahedra())
-            m3 = HomogenousMesh(sdf,MarchingCubes())
+            @test typeof(HomogenousMesh(sdf_torus,NaiveSurfaceNets())) ==
+                         PlainMesh{Float16,Face{4,Int}}
+            m2 = HomogenousMesh(sdf_torus,MarchingTetrahedra())
+            m3 = HomogenousMesh(sdf_torus,MarchingCubes())
         end
     end
 end
