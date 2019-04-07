@@ -46,9 +46,9 @@ const sn_edge_table = [0, 7, 25, 30, 98, 101, 123, 124, 168, 175, 177, 182, 202,
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(data, dims,eps,scale,origin)
+function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
-    vertices = Point{3,Float64}[]
+    vertices = Point{3,T}[]
     faces = Face{4,Int}[]
 
     sizehint!(vertices,ceil(Int,maximum(dims)^2/2))
@@ -59,9 +59,9 @@ function surface_nets(data, dims,eps,scale,origin)
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
 
-    buffer = fill(zero(Int32),R[3]*2)
+    buffer = fill(zero(Int),R[3]*2)
 
-    v = [0.0,0.0,0.0]
+    v = Vector{T}([0.0,0.0,0.0])
 
     #March over the voxel grid
     x[3] = 0
@@ -158,7 +158,7 @@ function surface_nets(data, dims,eps,scale,origin)
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
                 buffer[m+1] = length(vertices)
-                push!(vertices, Point{3,Float64}(v[1],v[2],v[3]))
+                push!(vertices, Point{3,T}(v[1],v[2],v[3]))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 for i=0:2
@@ -216,7 +216,7 @@ function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where 
     orig = origin(bounds)
     w = widths(bounds)
     scale = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-    vts, fcs = surface_nets(reshape(sdf.data,(1,length(sdf.data))),
+    vts, fcs = surface_nets(vec(sdf.data),
                             size(sdf.data),
                             method.eps,
                             scale,
