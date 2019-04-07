@@ -8,6 +8,22 @@ using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
+    @testset "surface nets" begin
+          sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+              sqrt(sum(dot(v,v))) - 1 # sphere
+          end
+          sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
+              (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+          end
+          sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
+          torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
+          @test length(vertices(sphere)) == 1832
+          @test length(vertices(torus)) == 5532
+          @test length(faces(sphere)) == 1830
+          @test length(faces(torus)) == 5532
+    end
+
+
     @testset "noisy spheres" begin
         # Produce a level set function that is a noisy version of the distance from
         # the origin (such that level sets are noisy spheres).
@@ -77,6 +93,16 @@ using LinearAlgebra: dot, norm
             @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
             @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
         end
+        # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
+        # so a larger tolerance is needed for this one. In addition,
+        # quad -> triangle conversion is not functioning correctly
+        # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
+        mesh = @inferred GLNormalMesh(sdf, NaiveSurfaceNets(0.5))
+        # should be centered on the origin
+        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+        # and should be symmetric about the origin
+        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5] atol=0.2
+        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
     end
 
     @testset "AbstractMeshingAlgorithm interface" begin
@@ -95,6 +121,10 @@ using LinearAlgebra: dot, norm
             @inferred GLNormalMesh(sdf, MarchingTetrahedra())
             @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
             @inferred GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
+        end
+        @testset "naive surface nets" begin
+            @test_nowarn GLNormalMesh(sdf, NaiveSurfaceNets())
+            @inferred GLNormalMesh(sdf, NaiveSurfaceNets())
         end
     end
 
@@ -144,7 +174,16 @@ using LinearAlgebra: dot, norm
             @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Int32))
             @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Int64))
         end
+        @testset "Float16" begin
+            sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
+                                                           Vec{3,Float16}(4,4,4.)),
+                                            0.1, Float16) do v
+                (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+            end
+            @test typeof(HomogenousMesh(sdf_torus,NaiveSurfaceNets())) ==
+                         PlainMesh{Float16,Face{4,Int}}
+            m2 = HomogenousMesh(sdf_torus,MarchingTetrahedra())
+            m3 = HomogenousMesh(sdf_torus,MarchingCubes())
+        end
     end
 end
-
-
