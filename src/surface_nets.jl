@@ -90,15 +90,14 @@ function surface_nets(data, dims,eps,scale,origin)
                                   data[n+dims[1]*3+1 + dims[1]*(dims[2]-2)],
                                   data[n+dims[1]*3+2 + dims[1]*(dims[2]-2)])
 
-
-                (grid[1] < 0.0) && (mask |= 0x01)
-                (grid[2] < 0.0) && (mask |= 0x02)
-                (grid[3] < 0.0) && (mask |= 0x04)
-                (grid[4] < 0.0) && (mask |= 0x08)
-                (grid[5] < 0.0) && (mask |= 0x10)
-                (grid[6] < 0.0) && (mask |= 0x20)
-                (grid[7] < 0.0) && (mask |= 0x40)
-                (grid[8] < 0.0) && (mask |= 0x80)
+                signbit(grid[1]) && (mask |= 0x01)
+                signbit(grid[2]) && (mask |= 0x02)
+                signbit(grid[3]) && (mask |= 0x04)
+                signbit(grid[4]) && (mask |= 0x08)
+                signbit(grid[5]) && (mask |= 0x10)
+                signbit(grid[6]) && (mask |= 0x20)
+                signbit(grid[7]) && (mask |= 0x40)
+                signbit(grid[8]) && (mask |= 0x80)
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff
