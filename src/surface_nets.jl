@@ -139,17 +139,14 @@ function surface_nets(data, dims,eps,scale,origin)
                     end
 
                     #Interpolate vertices and add up intersections (this can be done without multiplying)
-                    j = 0
                     k = 1
-                    while j<3
+                    for j = 1:3
                         a = e0 & k
-                        b = e1 & k;
+                        b = e1 & k
+                        (a != 0) && (v[j] += 1.0)
                         if a != b
-                            v[j+1] += (a != 0 ? 1.0 - t : t)
-                        else
-                            v[j+1] += (a != 0 ? 1.0 : 0)
+                            v[j] += (a != 0 ? - t : t)
                         end
-                        j+=1
                         k<<=1
                     end
                 end # edge check
@@ -162,7 +159,7 @@ function surface_nets(data, dims,eps,scale,origin)
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
                 buffer[m+1] = length(vertices)
-                push!(vertices, Point{3,Float64}(v[1],v[2],v[3]));
+                push!(vertices, Point{3,Float64}(v[1],v[2],v[3]))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 for i=0:2
