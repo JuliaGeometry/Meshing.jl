@@ -206,17 +206,29 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 end
 
 struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
-     eps::T
+    iso::T
+    eps::T
 end
 
-NaiveSurfaceNets() = NaiveSurfaceNets(1e-6)
+NaiveSurfaceNets(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps)
 
 function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
     bounds = sdf.bounds
     orig = origin(bounds)
     w = widths(bounds)
     scale = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-    vts, fcs = surface_nets(vec(sdf.data),
+
+    d = vec(sdf.data)
+
+    # Run iso surface additions here as to not
+    # penalize surface net inner loops, and we are using a copy anyway
+    if method.iso != 0.0
+        for i = eachindex(d)
+            d[i] -= method.iso
+        end
+    end
+
+    vts, fcs = surface_nets(d,
                             size(sdf.data),
                             method.eps,
                             scale,
