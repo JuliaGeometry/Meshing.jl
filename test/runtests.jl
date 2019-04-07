@@ -21,15 +21,6 @@ using LinearAlgebra: dot, norm
           @test length(vertices(torus)) == 5532
           @test length(faces(sphere)) == 1830
           @test length(faces(torus)) == 5532
-          @test for vt in vertices(sphere)
-              d = sqrt(sum(vt .^ 2))
-              if 0.001 < (d-1) < 0.001
-                  continue
-              else
-                  return false
-              end
-              true
-          end
     end
 
 
@@ -94,7 +85,9 @@ using LinearAlgebra: dot, norm
         resolution = 0.1
         sdf = SignedDistanceField(f, bounds, resolution)
 
-        for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
+        for algorithm in (MarchingCubes(0.5),
+                          MarchingTetrahedra(0.5),
+                          NaiveSurfaceNets(0.5))
             mesh = @inferred GLNormalMesh(sdf, algorithm)
             # should be centered on the origin
             @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
@@ -120,6 +113,10 @@ using LinearAlgebra: dot, norm
             @inferred GLNormalMesh(sdf, MarchingTetrahedra())
             @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
             @inferred GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
+        end
+        @testset "naive surface nets" begin
+            @test_nowarn GLNormalMesh(sdf, NaiveSurfaceNets())
+            @inferred GLNormalMesh(sdf, NaiveSurfaceNets())
         end
     end
 
@@ -168,6 +165,17 @@ using LinearAlgebra: dot, norm
             @inferred(Meshing.marchingTetrahedra(data, iso, eps, Int))
             @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Int32))
             @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Int64))
+        end
+        @testset "Float16" begin
+            sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
+                                                           Vec{3,Float16}(4,4,4.)),
+                                            0.1, Float16) do v
+                (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+            end
+            @test typeof(HomogenousMesh(sdf,NaiveSurfaceNets())) ==
+                         HomgenousMesh{Face{4,Int},Point{3,Float16}}
+            m2 = HomogenousMesh(sdf,MarchingTetrahedra())
+            m3 = HomogenousMesh(sdf,MarchingCubes())
         end
     end
 end
