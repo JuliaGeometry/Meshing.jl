@@ -40,7 +40,7 @@ For a full listing of concrete `AbstractMesh` types see [GeometryTypes.jl mesh d
 
 Three meshing algorithms exist:
 * `MarchingCubes()`
-* `MarchingTetrahedra()``
+* `MarchingTetrahedra()`
 * `NaiveSurfaceNets()`
 
 Each takes an optional `iso` and `eps` parameter, e.g. `MarchingCubes(0.0,1e-6)`.
