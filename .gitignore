@@ -1,3 +1,7 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+*.ply
+*.stl
+*.obj
+*.off
