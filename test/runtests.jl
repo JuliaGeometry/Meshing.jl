@@ -76,6 +76,15 @@ using LinearAlgebra: dot, norm
         @test m == m2
 
     end
+
+    @testset "marching cubes function" begin
+        m = marching_cubes(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        @test length(vertices(m)) == 10968
+        @test length(faces(m)) == 3656
+    end
+
     @testset "respect origin" begin
         # verify that when we construct a mesh, that mesh:
         #   a) respects the origin of the SDF
