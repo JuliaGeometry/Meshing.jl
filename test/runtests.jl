@@ -141,6 +141,15 @@ using LinearAlgebra: dot, norm
         @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
     end
 
+    @testset "Dual Contours" begin
+
+        sphere(v) = sqrt(sum(dot(v,v))) - 1 # sphere
+
+        m = Meshing.dual_contours(sphere, HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (50,50,50))
+        @test length(vertices(m)) == 11754
+        @test length(faces(m)) == 51186
+    end
+
     @testset "AbstractMeshingAlgorithm interface" begin
         f = x -> norm(x) - 0.5
         bounds = HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2))
