@@ -1,6 +1,8 @@
 module Meshing
 
 using GeometryTypes
+using AdaptiveDistanceFields
+import RegionTrees
 
 abstract type AbstractMeshingAlgorithm end
 

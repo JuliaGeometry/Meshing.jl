@@ -2,7 +2,9 @@ name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
 
 [deps]
+AdaptiveDistanceFields = "a1957575-6125-5dba-8f92-417d2d1f4a46"
 GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
+RegionTrees = "dee08c22-ab7f-5625-9660-a9af2021b33f"
 
 [extras]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"

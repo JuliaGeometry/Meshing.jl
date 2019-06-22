@@ -443,6 +443,74 @@ function marching_cubes(f::Function,
     MT(vts,fcs)
 end
 
+function marching_cubes_adf(f::Function,
+                        origin,
+                        widths,
+                        rtol=1e-2,
+                        atol=1e-2,
+                        iso=0.0,
+                        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
+                        eps=0.00001) where {ST,FT,M<:AbstractMesh}
+
+    adf = AdaptiveDistanceField(f, origin, widths)
+
+    # arrays for vertices and faces
+    vts = Point{3,Float64}[]
+    fcs = Face{3,Int}[]
+    vertlist = Vector{Point{3,Float64}}(undef, 12)
+    iso_vals = Vector{Float64}(undef,8)
+    points = Vector{Point{3,Float64}}(undef,8)
+
+    leaves = RegionTrees.allleaves(adf.root)
+
+    @inbounds for leaf in leaves
+        o = leaf.boundary.origin
+        w = leaf.boundary.widths
+        points = (Point{3,Float64}(o),
+                  o + w .* Point{3,Float64}(1,0,0),
+                  o + w .* Point{3,Float64}(1,1,0),
+                  o + w .* Point{3,Float64}(0,1,0),
+                  o + w .* Point{3,Float64}(0,0,1),
+                  o + w .* Point{3,Float64}(1,0,1),
+                  o + w .* Point{3,Float64}(1,1,1),
+                  o + w .* Point{3,Float64}(0,1,1))
+
+        iso_vals = map(adf,points)
+
+        #Determine the index into the edge table which
+        #tells us which vertices are inside of the surface
+        cubeindex = iso_vals[1] < iso ? 1 : 0
+        iso_vals[2] < iso && (cubeindex |= 2)
+        iso_vals[3] < iso && (cubeindex |= 4)
+        iso_vals[4] < iso && (cubeindex |= 8)
+        iso_vals[5] < iso && (cubeindex |= 16)
+        iso_vals[6] < iso && (cubeindex |= 32)
+        iso_vals[7] < iso && (cubeindex |= 64)
+        iso_vals[8] < iso && (cubeindex |= 128)
+        cubeindex += 1
+
+        # Cube is entirely in/out of the surface
+        edge_table[cubeindex] == 0 && continue
+
+        # Find the vertices where the surface intersects the cube
+        # TODO this can use the underlying function to find the zero.
+        # The underlying space is non-linear so there will be error otherwise
+        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+
+        # Create the triangle
+        for i = 1:3:13
+            tri_table[cubeindex][i] == -1 && break
+            push!(vts, vertlist[tri_table[cubeindex][i  ]])
+            push!(vts, vertlist[tri_table[cubeindex][i+1]])
+            push!(vts, vertlist[tri_table[cubeindex][i+2]])
+            fct = length(vts)
+            push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+        end
+
+    end
+    MT(vts,fcs)
+end
+
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
      if (edge_table[cubeindex] & 1 != 0)
      vertlist[1] =
