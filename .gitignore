@@ -1,7 +1,10 @@
+*~
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+*.jl.*.mem
 *.ply
 *.stl
 *.obj
 *.off
+Manifest.toml
