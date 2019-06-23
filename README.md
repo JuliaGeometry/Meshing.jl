@@ -3,18 +3,19 @@
 [![Build Status](https://travis-ci.org/JuliaGeometry/Meshing.jl.svg)](https://travis-ci.org/JuliaGeometry/Meshing.jl)
 [![codecov.io](http://codecov.io/github/JuliaGeometry/Meshing.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaGeometry/Meshing.jl?branch=master)
 
-This package provides meshing algorithms for use on distance fields.
+This package provides a comprehensive suite of meshing algorithms for use on distance fields.
 
-Including:
+Algorithms included:
 * [Marching Tetrahedra](https://en.wikipedia.org/wiki/Marching_tetrahedra)
 * [Marching Cubes](https://en.wikipedia.org/wiki/Marching_cubes)
 * [Naive Surface Nets](https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/)
 
 ## Interface
 
-This package is tightly integrated with [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl).
+This package inherits the [mesh types](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1)
+from [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl).
 
-All algorithms operate on `SignedDistanceField` and output a concrete `AbstractMesh`. For example:
+The algorithms operate on a `Function` or a `SignedDistanceField` and output a concrete `AbstractMesh`. For example:
 
 ```
 using Meshing
@@ -22,17 +23,18 @@ using GeometryTypes
 using LinearAlgebra: dot, norm
 using FileIO
 
-# generate an SDF of a sphere
-sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
-    sqrt(sum(dot(v,v))) - 1 # sphere
+# Mesh an equation of sphere in the Axis-Aligned Bounding box starting
+# at -1,-1,-1 and widths of 2,2,2
+m = GLNormalMesh(HyperRectangle(Vec(-1,-1,-1.), Vec(2,2,2.)), MarchingCubes()) do v
+    sqrt(sum(dot(v,v))) - 1
 end
 
-m = GLNormalMesh(sdf_sphere, MarchingCubes())
-
+# save the Sphere as a PLY file
 save("sphere.ply",m)
 ```
 
-The general API is ``(::Type{MT})(sdf::SignedDistanceField, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}``
+The general API is: ```(::Type{MT})(sdf::Function, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}``` or ```(::Type{MT})(sdf::SignedDistanceField, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}```
+
 
 For a full listing of concrete `AbstractMesh` types see [GeometryTypes.jl mesh documentation](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1).
 
