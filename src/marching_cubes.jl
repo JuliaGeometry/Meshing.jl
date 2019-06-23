@@ -521,3 +521,7 @@ end
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
      marching_cubes(f, h, size, method.iso, MT, method.eps)
 end
+
+function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
+     marching_cubes(f, h, size, method.iso, MT, method.eps)
+end

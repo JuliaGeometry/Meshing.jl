@@ -419,3 +419,7 @@ function (::Type{MT})(f::Function, bounds::HyperRectangle, size::NTuple{3,Int}, 
                             orig)
     MT(vts, fcs)::MT
 end
+
+function (::Type{MT})(f::Function, bounds::HyperRectangle, method::NaiveSurfaceNets;size::NTuple{3,Int}=(128,128,128)) where {MT <: AbstractMesh}
+    MT(f,bounds,size,method)
+end

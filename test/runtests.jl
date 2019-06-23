@@ -24,6 +24,14 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
+        # test convience constructors
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), size=(5,5,5)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
         sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
         torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
         @test length(vertices(sphere)) == 1832
@@ -84,6 +92,14 @@ using LinearAlgebra: dot, norm
         end
 
         mf = marching_cubes(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        # convience constructors
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), size=(5,6,7)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
