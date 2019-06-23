@@ -9,18 +9,40 @@ using LinearAlgebra: dot, norm
 
 @testset "meshing" begin
     @testset "surface nets" begin
-          sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
-              sqrt(sum(dot(v,v))) - 1 # sphere
-          end
-          sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
-              (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
-          end
-          sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
-          torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
-          @test length(vertices(sphere)) == 1832
-          @test length(vertices(torus)) == 5532
-          @test length(faces(sphere)) == 1830
-          @test length(faces(torus)) == 5532
+        sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
+            (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+        end
+
+        snf_torus = HomogenousMesh(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), NaiveSurfaceNets()) do v
+            (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+        end
+
+        snf_sphere = HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (21,21,21), NaiveSurfaceNets()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        # test convience constructors
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), size=(5,5,5)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
+        torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
+        @test length(vertices(sphere)) == 1832
+        @test length(vertices(torus)) == 5532
+        @test length(faces(sphere)) == 1830
+        @test length(faces(torus)) == 5532
+
+        @test length(vertices(sphere)) == length(vertices(snf_sphere))
+        @test length(vertices(torus)) == length(vertices(snf_torus))
+        @test length(faces(sphere)) == length(faces(snf_sphere))
+        @test length(faces(torus)) == length(faces(snf_torus))
     end
 
 
@@ -69,13 +91,27 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
+        mf = marching_cubes(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        # convience constructors
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), size=(5,6,7)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
         m = marching_cubes(sdf,0)
         m2 = marching_cubes(sdf)
         @test length(vertices(m)) == 10968
         @test length(faces(m)) == 3656
         @test m == m2
-
+        @test length(vertices(m)) == length(vertices(mf))
+        @test length(faces(m)) == length(faces(mf))
     end
+
     @testset "respect origin" begin
         # verify that when we construct a mesh, that mesh:
         #   a) respects the origin of the SDF
