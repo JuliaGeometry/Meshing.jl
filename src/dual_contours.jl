@@ -22,19 +22,21 @@ function estimate_hermite(f, v0, v1)
     return (x0, ForwardDiff.gradient(f,x0))
 end
 
-#Input:
-# f = implicit function
-# df = gradient of f
-# nc = resolution
-function dual_contours(f, bounds::HyperRectangle, nc::NTuple{3,Int})
+
+function dual_contours(f::Function, 
+                       bounds::HyperRectangle,
+                       samples::NTuple{3,Int}=(128,128,128),
+                       iso=0.0,
+                       MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
+                       eps=0.00001) where {ST,FT,M<:AbstractMesh}
 
     orig = origin(bounds)
     width = widths(bounds)
-    scale = width ./ Point(nc)
+    scale = width ./ Point(samples)
     #Compute vertices
     dc_verts = []
     vindex   = Dict()
-    for x in 0:nc[1], y in 0:nc[2], z in 0:nc[3]
+    for x in 0:samples[1], y in 0:samples[2], z in 0:samples[3]
         idx = Point(x,y,z)
         o = Point(x,y,z) .* scale + orig
 
@@ -69,7 +71,7 @@ function dual_contours(f, bounds::HyperRectangle, nc::NTuple{3,Int})
 
     #Construct faces
     dc_faces = Face[]
-    for x in 0:nc[1], y in 0:nc[2], z in 0:nc[3]
+    for x in 0:samples[1], y in 0:samples[2], z in 0:samples[3]
 
         idx = Point(x,y,z)
         if !haskey(vindex,idx)
@@ -101,6 +103,24 @@ function dual_contours(f, bounds::HyperRectangle, nc::NTuple{3,Int})
         end
 
     end
-    return HomogenousMesh([Point(v[1]...) for v in dc_verts], dc_faces)
+    return MT([Point(v[1]...) for v in dc_verts], dc_faces)
 end
 
+struct DualContours{T} <: AbstractMeshingAlgorithm
+    iso::T
+    eps::T
+end
+
+DualContours(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = DualContours{promote_type(T1, T2)}(iso, eps)
+
+function (::Type{MT})(df::SignedDistanceField, method::DualContours)::MT where {MT <: AbstractMesh}
+    dual_contours(df, method.iso, MT, method.eps)
+end
+
+function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::DualContours)::MT where {MT <: AbstractMesh}
+    dual_contours(f, h, size, method.iso, MT, method.eps)
+end
+
+function (::Type{MT})(f::Function, h::HyperRectangle, method::DualContours; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
+    dual_contours(f, h, size, method.iso, MT, method.eps)
+end
