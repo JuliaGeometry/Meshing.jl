@@ -146,9 +146,8 @@ using LinearAlgebra: dot, norm
         sphere(v) = sqrt(sum(dot(v,v))) - 1 # sphere
 
         m = SimpleMesh(sphere, HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (50,50,50), DualContours())
-        # the current LLS approach in DualContours is not numerically robust and has varied outputs
-        @test_broken length(vertices(m)) == 11754
-        @test_broken length(faces(m)) == 51186
+        @test length(vertices(m)) == 11754
+        @test length(faces(m)) == 51186
     end
 
     @testset "AbstractMeshingAlgorithm interface" begin

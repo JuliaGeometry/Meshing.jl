@@ -58,15 +58,7 @@ function dual_contours(f::Function,
         end
         b = [ dot(d[1],d[2]) for d in h_data ]
 
-        # use SVD for pseudo inverse
-        # F = svd(A, full=true)
-        # S = zeros(size(A))
-        # for i = 1:length(F.S)
-        #     S[i,i] = 1/(F.S[i])
-        # end
-        # ainv = F.V*S*F.U'
-
-        #compute the vertex from SVD
+        #compute the vertex using pseudo inverse
         v = pinv(A)*b
 
         #Throw out failed solutions
