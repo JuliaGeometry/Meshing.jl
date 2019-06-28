@@ -452,7 +452,7 @@ function marching_cubes_adf(f::Function,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
                         eps=0.00001) where {ST,FT,M<:AbstractMesh}
 
-    adf = AdaptiveDistanceField(f, origin, widths)
+    adf = AdaptiveDistanceField(f, origin, widths, rtol, atol)
 
     # arrays for vertices and faces
     vts = Point{3,Float64}[]
