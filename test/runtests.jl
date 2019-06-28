@@ -112,6 +112,16 @@ using LinearAlgebra: dot, norm
         @test length(faces(m)) == length(faces(mf))
     end
 
+    @testset "adaptive marching cubes" begin
+        m = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), AdaptiveMarchingCubes()) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        @show length(vertices(m))
+        @show length(faces(m))
+
+    end
+
     @testset "respect origin" begin
         # verify that when we construct a mesh, that mesh:
         #   a) respects the origin of the SDF

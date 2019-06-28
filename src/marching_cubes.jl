@@ -458,9 +458,6 @@ function marching_cubes_adf(f::Function,
     vts = Point{3,Float64}[]
     fcs = Face{3,Int}[]
     vertlist = Vector{Point{3,Float64}}(undef, 12)
-    iso_vals = Vector{Float64}(undef,8)
-    points = Vector{Point{3,Float64}}(undef,8)
-
     leaves = RegionTrees.allleaves(adf.root)
 
     @inbounds for leaf in leaves
@@ -582,6 +579,19 @@ end
 
 MarchingCubes(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps)
 
+struct AdaptiveMarchingCubes{T} <: AbstractMeshingAlgorithm
+     iso::T
+     eps::T
+     rtol::T
+     atol::T
+end
+
+AdaptiveMarchingCubes(iso::T1=0.0, eps::T2=1e-3, rtol::T3=1e-2, atol::T4=1e-2) where {T1, T2, T3, T4} = AdaptiveMarchingCubes{promote_type(T1, T2, T3, T4)}(iso, eps, rtol, atol)
+
+#
+# Marching Cubes
+#
+
 function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
      marching_cubes(df, method.iso, MT, method.eps)
 end
@@ -592,4 +602,16 @@ end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
      marching_cubes(f, h, size, method.iso, MT, method.eps)
+end
+
+#
+# Adaptive Marching Cubes
+#
+
+function (::Type{MT})(f::Function, h::HyperRectangle, method::AdaptiveMarchingCubes)::MT where {MT <: AbstractMesh}
+     marching_cubes_adf(f, SVector(h.origin), SVector(h.widths), method.rtol, method.atol, method.iso, MT, method.eps)
+end
+
+function (::Type{MT})(f::Function, h::HyperRectangle, samples::NTuple, method::AdaptiveMarchingCubes)::MT where {MT <: AbstractMesh}
+     marching_cubes_adf(f, SVector(h.origin), SVector(h.widths), method.rtol, method.atol, method.iso, MT, method.eps)
 end
