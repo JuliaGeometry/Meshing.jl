@@ -324,15 +324,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = iso_vals[1] < iso ? 1 : 0
-        iso_vals[2] < iso && (cubeindex |= 2)
-        iso_vals[3] < iso && (cubeindex |= 4)
-        iso_vals[4] < iso && (cubeindex |= 8)
-        iso_vals[5] < iso && (cubeindex |= 16)
-        iso_vals[6] < iso && (cubeindex |= 32)
-        iso_vals[7] < iso && (cubeindex |= 64)
-        iso_vals[8] < iso && (cubeindex |= 128)
-        cubeindex += 1
+        cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         iszero(edge_table[cubeindex]) && continue
@@ -341,14 +333,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        for i = 1:3:13
-            signbit(tri_table[cubeindex][i]) && break
-            push!(vts, vertlist[tri_table[cubeindex][i  ]])
-            push!(vts, vertlist[tri_table[cubeindex][i+1]])
-            push!(vts, vertlist[tri_table[cubeindex][i+2]])
-            fct = length(vts)
-            push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-        end
+        _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     end
     MT(vts,fcs)
 end
@@ -412,15 +397,7 @@ function marching_cubes(f::Function,
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = iso_vals[1] < iso ? 1 : 0
-        iso_vals[2] < iso && (cubeindex |= 2)
-        iso_vals[3] < iso && (cubeindex |= 4)
-        iso_vals[4] < iso && (cubeindex |= 8)
-        iso_vals[5] < iso && (cubeindex |= 16)
-        iso_vals[6] < iso && (cubeindex |= 32)
-        iso_vals[7] < iso && (cubeindex |= 64)
-        iso_vals[8] < iso && (cubeindex |= 128)
-        cubeindex += 1
+        cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         iszero(edge_table[cubeindex]) && continue
@@ -431,16 +408,33 @@ function marching_cubes(f::Function,
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        for i = 1:3:13
-            signbit(tri_table[cubeindex][i]) && break
-            push!(vts, vertlist[tri_table[cubeindex][i  ]])
-            push!(vts, vertlist[tri_table[cubeindex][i+1]])
-            push!(vts, vertlist[tri_table[cubeindex][i+2]])
-            fct = length(vts)
-            push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-        end
+        _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     end
     MT(vts,fcs)
+end
+
+@inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+    for i = 1:3:13
+        signbit(tri_table[cubeindex][i]) && break
+        push!(vts, vertlist[tri_table[cubeindex][i  ]])
+        push!(vts, vertlist[tri_table[cubeindex][i+1]])
+        push!(vts, vertlist[tri_table[cubeindex][i+2]])
+        fct = length(vts)
+        push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    end
+end
+
+@inline function _mc_cubeindex(iso_vals, iso)
+    cubeindex = iso_vals[1] < iso ? 1 : 0
+    iso_vals[2] < iso && (cubeindex |= 2)
+    iso_vals[3] < iso && (cubeindex |= 4)
+    iso_vals[4] < iso && (cubeindex |= 8)
+    iso_vals[5] < iso && (cubeindex |= 16)
+    iso_vals[6] < iso && (cubeindex |= 32)
+    iso_vals[7] < iso && (cubeindex |= 64)
+    iso_vals[8] < iso && (cubeindex |= 128)
+    cubeindex += 1
+    cubeindex
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
