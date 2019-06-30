@@ -414,14 +414,41 @@ function marching_cubes(f::Function,
 end
 
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
-    for i = 1:3:13
-        signbit(tri_table[cubeindex][i]) && break
-        push!(vts, vertlist[tri_table[cubeindex][i  ]])
-        push!(vts, vertlist[tri_table[cubeindex][i+1]])
-        push!(vts, vertlist[tri_table[cubeindex][i+2]])
-        fct = length(vts)
-        push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    end
+    fct = length(vts) + 3
+
+    signbit(tri_table[cubeindex][1]) && return
+    push!(vts, vertlist[tri_table[cubeindex][1]])
+    push!(vts, vertlist[tri_table[cubeindex][2]])
+    push!(vts, vertlist[tri_table[cubeindex][3]])
+    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    fct += 3
+
+    signbit(tri_table[cubeindex][4]) && return
+    push!(vts, vertlist[tri_table[cubeindex][4]])
+    push!(vts, vertlist[tri_table[cubeindex][5]])
+    push!(vts, vertlist[tri_table[cubeindex][6]])
+    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    fct += 3
+
+    signbit(tri_table[cubeindex][7]) && return
+    push!(vts, vertlist[tri_table[cubeindex][7]])
+    push!(vts, vertlist[tri_table[cubeindex][8]])
+    push!(vts, vertlist[tri_table[cubeindex][9]])
+    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    fct += 3
+
+    signbit(tri_table[cubeindex][10]) && return
+    push!(vts, vertlist[tri_table[cubeindex][10]])
+    push!(vts, vertlist[tri_table[cubeindex][11]])
+    push!(vts, vertlist[tri_table[cubeindex][12]])
+    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    fct += 3
+
+    signbit(tri_table[cubeindex][13]) && return
+    push!(vts, vertlist[tri_table[cubeindex][13]])
+    push!(vts, vertlist[tri_table[cubeindex][14]])
+    push!(vts, vertlist[tri_table[cubeindex][15]])
+    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 end
 
 @inline function _mc_cubeindex(iso_vals, iso)
