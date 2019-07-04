@@ -55,7 +55,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
-        iszero(edge_table[cubeindex]) && continue
+        (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
         # Find the vertices where the surface intersects the cube
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
@@ -128,7 +128,7 @@ function marching_cubes(f::Function,
         cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
-        iszero(edge_table[cubeindex]) && continue
+        (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
@@ -144,7 +144,6 @@ end
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     fct = length(vts) + 3
 
-    signbit(tri_table[cubeindex][1]) && return
     push!(vts, vertlist[tri_table[cubeindex][1]])
     push!(vts, vertlist[tri_table[cubeindex][2]])
     push!(vts, vertlist[tri_table[cubeindex][3]])
@@ -180,15 +179,14 @@ end
 end
 
 @inline function _mc_cubeindex(iso_vals, iso)
-    cubeindex = iso_vals[1] < iso ? 1 : 0
-    iso_vals[2] < iso && (cubeindex |= 2)
-    iso_vals[3] < iso && (cubeindex |= 4)
-    iso_vals[4] < iso && (cubeindex |= 8)
-    iso_vals[5] < iso && (cubeindex |= 16)
-    iso_vals[6] < iso && (cubeindex |= 32)
-    iso_vals[7] < iso && (cubeindex |= 64)
-    iso_vals[8] < iso && (cubeindex |= 128)
-    cubeindex += 1
+    cubeindex = iso_vals[1] < iso ? 0x01 : 0x00
+    iso_vals[2] < iso && (cubeindex |= 0x02)
+    iso_vals[3] < iso && (cubeindex |= 0x04)
+    iso_vals[4] < iso && (cubeindex |= 0x08)
+    iso_vals[5] < iso && (cubeindex |= 0x10)
+    iso_vals[6] < iso && (cubeindex |= 0x20)
+    iso_vals[7] < iso && (cubeindex |= 0x40)
+    iso_vals[8] < iso && (cubeindex |= 0x80)
     cubeindex
 end
 
