@@ -193,51 +193,51 @@ end
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
-     if !iszero(edge_table[cubeindex] & 1)
+     if !iszero(edge_table[cubeindex] & 0x001)
      vertlist[1] =
           vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps)
      end
-     if !iszero(edge_table[cubeindex] & 2)
+     if !iszero(edge_table[cubeindex] & 0x002)
      vertlist[2] =
           vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps)
      end
-     if !iszero(edge_table[cubeindex] & 4)
+     if !iszero(edge_table[cubeindex] & 0x004)
      vertlist[3] =
           vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps)
      end
-     if !iszero(edge_table[cubeindex] & 8)
+     if !iszero(edge_table[cubeindex] & 0x008)
      vertlist[4] =
           vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps)
      end
-     if !iszero(edge_table[cubeindex] & 16)
+     if !iszero(edge_table[cubeindex] & 0x010)
      vertlist[5] =
           vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps)
      end
-     if !iszero(edge_table[cubeindex] & 32)
+     if !iszero(edge_table[cubeindex] & 0x020)
      vertlist[6] =
           vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps)
      end
-     if !iszero(edge_table[cubeindex] & 64)
+     if !iszero(edge_table[cubeindex] & 0x040)
      vertlist[7] =
           vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps)
      end
-     if !iszero(edge_table[cubeindex] & 128)
+     if !iszero(edge_table[cubeindex] & 0x080)
      vertlist[8] =
           vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps)
      end
-     if !iszero(edge_table[cubeindex] & 256)
+     if !iszero(edge_table[cubeindex] & 0x100)
      vertlist[9] =
           vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps)
      end
-     if !iszero(edge_table[cubeindex] & 512)
+     if !iszero(edge_table[cubeindex] & 0x200)
      vertlist[10] =
           vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps)
      end
-     if !iszero(edge_table[cubeindex] & 1024)
+     if !iszero(edge_table[cubeindex] & 0x400)
      vertlist[11] =
           vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps)
      end
-     if !iszero(edge_table[cubeindex] & 2048)
+     if !iszero(edge_table[cubeindex] & 0x800)
      vertlist[12] =
           vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps)
      end
