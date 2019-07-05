@@ -148,30 +148,30 @@ end
     push!(vts, vertlist[tri_table[cubeindex][2]])
     push!(vts, vertlist[tri_table[cubeindex][3]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][4]) && return
+    iszero(tri_table[cubeindex][4]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][4]])
     push!(vts, vertlist[tri_table[cubeindex][5]])
     push!(vts, vertlist[tri_table[cubeindex][6]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][7]) && return
+    iszero(tri_table[cubeindex][7]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][7]])
     push!(vts, vertlist[tri_table[cubeindex][8]])
     push!(vts, vertlist[tri_table[cubeindex][9]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][10]) && return
+    iszero(tri_table[cubeindex][10]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][10]])
     push!(vts, vertlist[tri_table[cubeindex][11]])
     push!(vts, vertlist[tri_table[cubeindex][12]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][13]) && return
+    iszero(tri_table[cubeindex][13]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][13]])
     push!(vts, vertlist[tri_table[cubeindex][14]])
     push!(vts, vertlist[tri_table[cubeindex][15]])
