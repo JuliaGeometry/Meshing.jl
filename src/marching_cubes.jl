@@ -55,7 +55,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
-        iszero(edge_table[cubeindex]) && continue
+        (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
         # Find the vertices where the surface intersects the cube
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
@@ -128,7 +128,7 @@ function marching_cubes(f::Function,
         cubeindex = _mc_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
-        iszero(edge_table[cubeindex]) && continue
+        (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
@@ -144,35 +144,34 @@ end
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     fct = length(vts) + 3
 
-    signbit(tri_table[cubeindex][1]) && return
     push!(vts, vertlist[tri_table[cubeindex][1]])
     push!(vts, vertlist[tri_table[cubeindex][2]])
     push!(vts, vertlist[tri_table[cubeindex][3]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][4]) && return
+    iszero(tri_table[cubeindex][4]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][4]])
     push!(vts, vertlist[tri_table[cubeindex][5]])
     push!(vts, vertlist[tri_table[cubeindex][6]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][7]) && return
+    iszero(tri_table[cubeindex][7]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][7]])
     push!(vts, vertlist[tri_table[cubeindex][8]])
     push!(vts, vertlist[tri_table[cubeindex][9]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][10]) && return
+    iszero(tri_table[cubeindex][10]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][10]])
     push!(vts, vertlist[tri_table[cubeindex][11]])
     push!(vts, vertlist[tri_table[cubeindex][12]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-    fct += 3
 
-    signbit(tri_table[cubeindex][13]) && return
+    iszero(tri_table[cubeindex][13]) && return
+    fct += 3
     push!(vts, vertlist[tri_table[cubeindex][13]])
     push!(vts, vertlist[tri_table[cubeindex][14]])
     push!(vts, vertlist[tri_table[cubeindex][15]])
@@ -180,64 +179,63 @@ end
 end
 
 @inline function _mc_cubeindex(iso_vals, iso)
-    cubeindex = iso_vals[1] < iso ? 1 : 0
-    iso_vals[2] < iso && (cubeindex |= 2)
-    iso_vals[3] < iso && (cubeindex |= 4)
-    iso_vals[4] < iso && (cubeindex |= 8)
-    iso_vals[5] < iso && (cubeindex |= 16)
-    iso_vals[6] < iso && (cubeindex |= 32)
-    iso_vals[7] < iso && (cubeindex |= 64)
-    iso_vals[8] < iso && (cubeindex |= 128)
-    cubeindex += 1
+    cubeindex = iso_vals[1] < iso ? 0x01 : 0x00
+    iso_vals[2] < iso && (cubeindex |= 0x02)
+    iso_vals[3] < iso && (cubeindex |= 0x04)
+    iso_vals[4] < iso && (cubeindex |= 0x08)
+    iso_vals[5] < iso && (cubeindex |= 0x10)
+    iso_vals[6] < iso && (cubeindex |= 0x20)
+    iso_vals[7] < iso && (cubeindex |= 0x40)
+    iso_vals[8] < iso && (cubeindex |= 0x80)
     cubeindex
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
-     if !iszero(edge_table[cubeindex] & 1)
+     if !iszero(edge_table[cubeindex] & 0x001)
      vertlist[1] =
           vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps)
      end
-     if !iszero(edge_table[cubeindex] & 2)
+     if !iszero(edge_table[cubeindex] & 0x002)
      vertlist[2] =
           vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps)
      end
-     if !iszero(edge_table[cubeindex] & 4)
+     if !iszero(edge_table[cubeindex] & 0x004)
      vertlist[3] =
           vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps)
      end
-     if !iszero(edge_table[cubeindex] & 8)
+     if !iszero(edge_table[cubeindex] & 0x008)
      vertlist[4] =
           vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps)
      end
-     if !iszero(edge_table[cubeindex] & 16)
+     if !iszero(edge_table[cubeindex] & 0x010)
      vertlist[5] =
           vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps)
      end
-     if !iszero(edge_table[cubeindex] & 32)
+     if !iszero(edge_table[cubeindex] & 0x020)
      vertlist[6] =
           vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps)
      end
-     if !iszero(edge_table[cubeindex] & 64)
+     if !iszero(edge_table[cubeindex] & 0x040)
      vertlist[7] =
           vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps)
      end
-     if !iszero(edge_table[cubeindex] & 128)
+     if !iszero(edge_table[cubeindex] & 0x080)
      vertlist[8] =
           vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps)
      end
-     if !iszero(edge_table[cubeindex] & 256)
+     if !iszero(edge_table[cubeindex] & 0x100)
      vertlist[9] =
           vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps)
      end
-     if !iszero(edge_table[cubeindex] & 512)
+     if !iszero(edge_table[cubeindex] & 0x200)
      vertlist[10] =
           vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps)
      end
-     if !iszero(edge_table[cubeindex] & 1024)
+     if !iszero(edge_table[cubeindex] & 0x400)
      vertlist[11] =
           vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps)
      end
-     if !iszero(edge_table[cubeindex] & 2048)
+     if !iszero(edge_table[cubeindex] & 0x800)
      vertlist[12] =
           vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps)
      end

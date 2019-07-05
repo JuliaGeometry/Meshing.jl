@@ -129,6 +129,15 @@ using LinearAlgebra: dot, norm
             @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
             @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
         end
+
+        # Test functional Meshing
+        mesh = @inferred GLNormalMesh(f, HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2)), (21,21,21), MarchingCubes(0.5))
+        # should be centered on the origin
+        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+        # and should be symmetric about the origin
+        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
+        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
+
         # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
         # so a larger tolerance is needed for this one. In addition,
         # quad -> triangle conversion is not functioning correctly
