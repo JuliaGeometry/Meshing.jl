@@ -144,37 +144,37 @@ end
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     fct = length(vts) + 3
 
-    push!(vts, vertlist[tri_table[cubeindex][1]])
-    push!(vts, vertlist[tri_table[cubeindex][2]])
-    push!(vts, vertlist[tri_table[cubeindex][3]])
+    push!(vts, vertlist[tri_table[cubeindex][1]],
+               vertlist[tri_table[cubeindex][2]],
+               vertlist[tri_table[cubeindex][3]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][4]) && return
     fct += 3
-    push!(vts, vertlist[tri_table[cubeindex][4]])
-    push!(vts, vertlist[tri_table[cubeindex][5]])
-    push!(vts, vertlist[tri_table[cubeindex][6]])
+    push!(vts, vertlist[tri_table[cubeindex][4]],
+               vertlist[tri_table[cubeindex][5]],
+               vertlist[tri_table[cubeindex][6]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][7]) && return
     fct += 3
-    push!(vts, vertlist[tri_table[cubeindex][7]])
-    push!(vts, vertlist[tri_table[cubeindex][8]])
-    push!(vts, vertlist[tri_table[cubeindex][9]])
+    push!(vts, vertlist[tri_table[cubeindex][7]],
+               vertlist[tri_table[cubeindex][8]],
+               vertlist[tri_table[cubeindex][9]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][10]) && return
     fct += 3
-    push!(vts, vertlist[tri_table[cubeindex][10]])
-    push!(vts, vertlist[tri_table[cubeindex][11]])
-    push!(vts, vertlist[tri_table[cubeindex][12]])
+    push!(vts, vertlist[tri_table[cubeindex][10]],
+               vertlist[tri_table[cubeindex][11]],
+               vertlist[tri_table[cubeindex][12]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][13]) && return
     fct += 3
-    push!(vts, vertlist[tri_table[cubeindex][13]])
-    push!(vts, vertlist[tri_table[cubeindex][14]])
-    push!(vts, vertlist[tri_table[cubeindex][15]])
+    push!(vts, vertlist[tri_table[cubeindex][13]],
+               vertlist[tri_table[cubeindex][14]],
+               vertlist[tri_table[cubeindex][15]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
 end
 
