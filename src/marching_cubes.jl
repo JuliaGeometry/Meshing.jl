@@ -89,30 +89,22 @@ function marching_cubes(f::Function,
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     iso_vals = Vector{Float64}(undef,8)
-    points = Vector{Point{3,Float64}}(undef,8)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
+     points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
+               Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
+               Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
+               Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
+               Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
+               Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
+               Point{3,Float64}(xi,yi,zi) .* s .+ orig,
+               Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
+
         if zi == 1
-            points[1] = Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig
-            points[2] = Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig
-            points[3] = Point{3,Float64}(xi,yi,zi-1) .* s .+ orig
-            points[4] = Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig
-            points[5] = Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig
-            points[6] = Point{3,Float64}(xi,yi-1,zi) .* s .+ orig
-            points[7] = Point{3,Float64}(xi,yi,zi) .* s .+ orig
-            points[8] = Point{3,Float64}(xi-1,yi,zi) .* s .+ orig
             for i = 1:8
                 iso_vals[i] = f(points[i])
             end
         else
-            points[1] = points[5]
-            points[2] = points[6]
-            points[3] = points[7]
-            points[4] = points[8]
-            points[5] = Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig
-            points[6] = Point{3,Float64}(xi,yi-1,zi) .* s .+ orig
-            points[7] = Point{3,Float64}(xi,yi,zi) .* s .+ orig
-            points[8] = Point{3,Float64}(xi-1,yi,zi) .* s .+ orig
             iso_vals[1] = iso_vals[5]
             iso_vals[2] = iso_vals[6]
             iso_vals[3] = iso_vals[7]
