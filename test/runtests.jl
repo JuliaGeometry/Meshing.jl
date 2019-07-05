@@ -105,7 +105,7 @@ using LinearAlgebra: dot, norm
 
         m = marching_cubes(sdf,0)
         m2 = marching_cubes(sdf)
-        @test length(vertices(m)) == 10968
+        @test length(vertices(m)) == 7320
         @test length(faces(m)) == 3656
         @test m == m2
         @test length(vertices(m)) == length(vertices(mf))
