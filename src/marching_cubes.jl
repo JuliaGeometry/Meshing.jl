@@ -89,16 +89,17 @@ function marching_cubes(f::Function,
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     iso_vals = Vector{Float64}(undef,8)
+    iso_vals_column = Vector{Float64}(undef, nz*2)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-     points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
-               Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
-               Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
-               Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
-               Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
-               Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
-               Point{3,Float64}(xi,yi,zi) .* s .+ orig,
-               Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
+        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
 
         if zi == 1
             for i = 1:8
@@ -183,54 +184,54 @@ end
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
-     if !iszero(edge_table[cubeindex] & 0x001)
-     vertlist[1] =
-          vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x002)
-     vertlist[2] =
-          vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x004)
-     vertlist[3] =
-          vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x008)
-     vertlist[4] =
-          vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x010)
-     vertlist[5] =
-          vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x020)
-     vertlist[6] =
-          vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x040)
-     vertlist[7] =
-          vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x080)
-     vertlist[8] =
-          vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x100)
-     vertlist[9] =
-          vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x200)
-     vertlist[10] =
-          vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x400)
-     vertlist[11] =
-          vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps)
-     end
-     if !iszero(edge_table[cubeindex] & 0x800)
-     vertlist[12] =
-          vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps)
-     end
+    if !iszero(edge_table[cubeindex] & 0x001)
+        vertlist[1] =
+            vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x002)
+        vertlist[2] =
+            vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x004)
+        vertlist[3] =
+            vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x008)
+        vertlist[4] =
+            vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x010)
+        vertlist[5] =
+            vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x020)
+        vertlist[6] =
+            vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x040)
+        vertlist[7] =
+            vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x080)
+        vertlist[8] =
+            vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x100)
+        vertlist[9] =
+            vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x200)
+        vertlist[10] =
+            vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x400)
+        vertlist[11] =
+            vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps)
+    end
+    if !iszero(edge_table[cubeindex] & 0x800)
+        vertlist[12] =
+            vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps)
+    end
 end
 
 # Linearly interpolate the position where an isosurface cuts
@@ -247,20 +248,20 @@ function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
 end
 
 struct MarchingCubes{T} <: AbstractMeshingAlgorithm
-     iso::T
-     eps::T
+    iso::T
+    eps::T
 end
 
 MarchingCubes(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps)
 
 function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-     marching_cubes(df, method.iso, MT, method.eps)
+    marching_cubes(df, method.iso, MT, method.eps)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-     marching_cubes(f, h, size, method.iso, MT, method.eps)
+    marching_cubes(f, h, size, method.iso, MT, method.eps)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
-     marching_cubes(f, h, size, method.iso, MT, method.eps)
+    marching_cubes(f, h, size, method.iso, MT, method.eps)
 end
