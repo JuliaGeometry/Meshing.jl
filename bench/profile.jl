@@ -4,15 +4,29 @@ using Juno
 using Profile
 
 
-algo = NaiveSurfaceNets()
+# algo type to profile
+algo = MarchingCubes()
 
+# set if using function or SDF variant
+fn_mesh = true
+
+## Constructions
 torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
     (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 end
 
-m2 = HomogenousMesh(torus, algo)
+torus_fn(v) = (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 
+# clearout profile
 Profile.clear()
-Juno.@profiler HomogenousMesh(torus, algo)
+
+# warmup and profile
+if fn_mesh
+    HomogenousMesh(torus_fn,HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), algo) # use default 128 size for warmup
+    Juno.@profiler HomogenousMesh(torus_fn,HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (512,512,512), algo)
+else
+    HomogenousMesh(torus, algo)
+    Juno.@profiler HomogenousMesh(torus, algo)
+end
 
 Juno.profiler()
