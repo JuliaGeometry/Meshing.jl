@@ -3,6 +3,7 @@ uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
 
 [deps]
 GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
+SIMD = "fdea26ae-647d-5447-a871-4b548cad5224"
 
 [extras]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"

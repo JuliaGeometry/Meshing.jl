@@ -1,6 +1,7 @@
 module Meshing
 
 using GeometryTypes
+import SIMD
 
 abstract type AbstractMeshingAlgorithm end
 
