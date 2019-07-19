@@ -48,7 +48,6 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = 0x00
                 @inbounds grid = (data[n+1],
                                   data[n+2],
                                   data[n+dims[1]+1],
@@ -58,14 +57,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
                                   data[n+dims[1]*3+1 + dims[1]*(dims[2]-2)],
                                   data[n+dims[1]*3+2 + dims[1]*(dims[2]-2)])
 
-                signbit(grid[1]) && (mask |= 0x01)
-                signbit(grid[2]) && (mask |= 0x02)
-                signbit(grid[3]) && (mask |= 0x04)
-                signbit(grid[4]) && (mask |= 0x08)
-                signbit(grid[5]) && (mask |= 0x10)
-                signbit(grid[6]) && (mask |= 0x20)
-                signbit(grid[7]) && (mask |= 0x40)
-                signbit(grid[8]) && (mask |= 0x80)
+                mask = _get_cubeindex(grid, 0)
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff
@@ -239,15 +231,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                 end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = 0x00
-                signbit(grid[1]) && (mask |= 0x01)
-                signbit(grid[2]) && (mask |= 0x02)
-                signbit(grid[3]) && (mask |= 0x04)
-                signbit(grid[4]) && (mask |= 0x08)
-                signbit(grid[5]) && (mask |= 0x10)
-                signbit(grid[6]) && (mask |= 0x20)
-                signbit(grid[7]) && (mask |= 0x40)
-                signbit(grid[8]) && (mask |= 0x80)
+                mask = _get_cubeindex(grid, 0)
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff

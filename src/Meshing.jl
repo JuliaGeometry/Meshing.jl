@@ -4,6 +4,7 @@ using GeometryTypes
 
 abstract type AbstractMeshingAlgorithm end
 
+include("common.jl")
 include("marching_tetrahedra.jl")
 include("marching_cubes.jl")
 include("surface_nets.jl")

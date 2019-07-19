@@ -52,7 +52,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = _mc_cubeindex(iso_vals, iso)
+        cubeindex = _get_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
@@ -117,7 +117,7 @@ function marching_cubes(f::Function,
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = _mc_cubeindex(iso_vals, iso)
+        cubeindex = _get_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
@@ -168,18 +168,6 @@ end
                vertlist[tri_table[cubeindex][14]],
                vertlist[tri_table[cubeindex][15]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
-end
-
-@inline function _mc_cubeindex(iso_vals, iso)
-    cubeindex = iso_vals[1] < iso ? 0x01 : 0x00
-    iso_vals[2] < iso && (cubeindex |= 0x02)
-    iso_vals[3] < iso && (cubeindex |= 0x04)
-    iso_vals[4] < iso && (cubeindex |= 0x08)
-    iso_vals[5] < iso && (cubeindex |= 0x10)
-    iso_vals[6] < iso && (cubeindex |= 0x20)
-    iso_vals[7] < iso && (cubeindex |= 0x40)
-    iso_vals[8] < iso && (cubeindex |= 0x80)
-    cubeindex
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
