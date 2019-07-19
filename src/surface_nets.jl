@@ -24,7 +24,6 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
     sizehint!(faces,ceil(Int,maximum(dims)^2/2))
 
     n = 0
-    x = [0,0,0]
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
 
@@ -33,19 +32,19 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
     v = Vector{T}([0.0,0.0,0.0])
 
     #March over the voxel grid
-    x[3] = 0
-    @inbounds while x[3]<dims[3]-1
+    zi = 0
+    @inbounds while zi<dims[3]-1
 
         # m is the pointer into the buffer we are going to use.
         # This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
 
-        x[2]=0
-        @inbounds while x[2]<dims[2]-1
+        yi=0
+        @inbounds while yi<dims[2]-1
 
-            x[1]=0
-            @inbounds while x[1] < dims[1]-1
+            xi=0
+            @inbounds while xi < dims[1]-1
 
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
@@ -70,7 +69,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff
-                    x[1] += 1
+                    xi += 1
                     n += 1
                     m += 1
                     continue
@@ -121,15 +120,16 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
                 #Now we just average the edge intersections and add them to coordinate
                 s = 1.0 / e_count
-                for i=1:3
-                    @inbounds v[i] = (x[i] + s * v[i]) * scale[i] + origin[i]
-                end
+                @inbounds v[1] = (xi + s * v[1]) * scale[1] + origin[1]
+                @inbounds v[2] = (yi + s * v[2]) * scale[2] + origin[2]
+                @inbounds v[3] = (zi + s * v[3]) * scale[3] + origin[3]
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
                 buffer[m+1] = length(vertices)
                 push!(vertices, Point{3,T}(v[1],v[2],v[3]))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
+                x = (xi,yi,zi)
                 for i=0:2
                     #The first three entries of the edge_mask count the crossings along the edge
                     if (edge_mask & (1<<i)) == 0
@@ -156,15 +156,15 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
                         push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
                     end
                 end
-                x[1] += 1
+                xi += 1
                 n += 1
                 m += 1
             end
-            x[2] += 1
+            yi += 1
             n += 1
             m += 2
         end
-        x[3] += 1
+        zi += 1
         n+=dims[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
@@ -190,7 +190,6 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     sizehint!(faces,ceil(Int,maximum(dims)^2/2))
 
     n = 0
-    x = [0,0,0]
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
 
@@ -200,31 +199,31 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     grid = Vector{Float64}(undef,8)
 
     #March over the voxel grid
-    x[3] = 0
-    @inbounds while x[3]<dims[3]-1
+    zi = 0
+    @inbounds while zi<dims[3]-1
 
         # m is the pointer into the buffer we are going to use.
         # This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
 
-        x[2]=0
-        @inbounds while x[2]<dims[2]-1
+        yi=0
+        @inbounds while yi<dims[2]-1
 
-            x[1]=0
-            @inbounds while x[1] < dims[1]-1
+            xi=0
+            @inbounds while xi < dims[1]-1
 
                 # Read in 8 field values around this vertex and store them in an array
-                points = (Point{3,Float64}(x[1],x[2],x[3]).* scale + origin,
-                          Point{3,Float64}(x[1]+1,x[2],x[3]).* scale + origin,
-                          Point{3,Float64}(x[1],x[2]+1,x[3]).* scale + origin,
-                          Point{3,Float64}(x[1]+1,x[2]+1,x[3]).* scale + origin,
-                          Point{3,Float64}(x[1],x[2],x[3]+1).* scale + origin,
-                          Point{3,Float64}(x[1]+1,x[2],x[3]+1).* scale + origin,
-                          Point{3,Float64}(x[1],x[2]+1,x[3]+1).* scale + origin,
-                          Point{3,Float64}(x[1]+1,x[2]+1,x[3]+1).* scale + origin)
+                points = (Point{3,Float64}(xi,yi,zi).* scale + origin,
+                          Point{3,Float64}(xi+1,yi,zi).* scale + origin,
+                          Point{3,Float64}(xi,yi+1,zi).* scale + origin,
+                          Point{3,Float64}(xi+1,yi+1,zi).* scale + origin,
+                          Point{3,Float64}(xi,yi,zi+1).* scale + origin,
+                          Point{3,Float64}(xi+1,yi,zi+1).* scale + origin,
+                          Point{3,Float64}(xi,yi+1,zi+1).* scale + origin,
+                          Point{3,Float64}(xi+1,yi+1,zi+1).* scale + origin)
 
-                if x[1] == 0
+                if xi == 0
                     for i = 1:8
                         grid[i] = f(points[i])
                     end
@@ -252,7 +251,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
                 # Check for early termination if cell does not intersect boundary
                 if mask == 0x00 || mask == 0xff
-                    x[1] += 1
+                    xi += 1
                     n += 1
                     m += 1
                     continue
@@ -303,15 +302,16 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
                 #Now we just average the edge intersections and add them to coordinate
                 s = 1.0 / e_count
-                for i=1:3
-                    @inbounds v[i] = (x[i] + s * v[i])# * scale[i] + origin[i]
-                end
+                @inbounds v[1] = (xi + s * v[1])# * scale[i] + origin[i]
+                @inbounds v[2] = (yi + s * v[2])# * scale[i] + origin[i]
+                @inbounds v[3] = (zi + s * v[3])# * scale[i] + origin[i]
 
                 #Add vertex to buffer, store pointer to vertex index in buffer
                 buffer[m+1] = length(vertices)
                 push!(vertices, Point{3,T}(v[1],v[2],v[3]))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
+                x = (xi,yi,zi)
                 for i=0:2
                     #The first three entries of the edge_mask count the crossings along the edge
                     if (edge_mask & (1<<i)) == 0
@@ -338,15 +338,15 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                         push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
                     end
                 end
-                x[1] += 1
+                xi += 1
                 n += 1
                 m += 1
             end
-            x[2] += 1
+            yi += 1
             n += 1
             m += 2
         end
-        x[3] += 1
+        zi += 1
         n+=dims[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
