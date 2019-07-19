@@ -197,6 +197,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     buffer = fill(zero(Int),R[3]*2)
 
     v = Vector{T}([0.0,0.0,0.0])
+    grid = Vector{Float64}(undef,8)
 
     #March over the voxel grid
     x[3] = 0
@@ -223,7 +224,20 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                           Point{3,Float64}(x[1],x[2]+1,x[3]+1).* scale + origin,
                           Point{3,Float64}(x[1]+1,x[2]+1,x[3]+1).* scale + origin)
 
-                @inbounds grid = map(f, points)
+                if x[1] == 0
+                    for i = 1:8
+                        grid[i] = f(points[i])
+                    end
+                else
+                    grid[1] = grid[2]
+                    grid[2] = f(points[2])
+                    grid[3] = grid[4]
+                    grid[4] = f(points[4])
+                    grid[5] = grid[6]
+                    grid[6] = f(points[6])
+                    grid[7] = grid[8]
+                    grid[8] = f(points[8])
+                end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
                 mask = 0x00
