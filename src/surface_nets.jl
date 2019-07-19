@@ -68,7 +68,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
                 end
 
                 #Sum up edge intersections
-                edge_mask = sn_edge_table[mask+1]
+                edge_mask = sn_edge_table[mask]
                 v[1] = 0.0
                 v[2] = 0.0
                 v[3] = 0.0
@@ -242,7 +242,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                 end
 
                 #Sum up edge intersections
-                edge_mask = sn_edge_table[mask+1]
+                edge_mask = sn_edge_table[mask]
                 v[1] = 0.0
                 v[2] = 0.0
                 v[3] = 0.0
