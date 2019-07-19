@@ -172,6 +172,7 @@ end
 end
 
 # check crossings using SIMD when using Float32 or Float64
+# may want to try using vgather to reduce memory shuffling
 @inline function _mc_cubeindex(iso_vals::NTuple{8,T}, iso) where {T <: Union{Float32, Float64}}
     v = SIMD.Vec(iso_vals)
     bc = v < convert(T,iso)
