@@ -89,7 +89,6 @@ function marching_cubes(f::Function,
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     iso_vals = Vector{Float64}(undef,8)
-    iso_vals_column = Vector{Float64}(undef, nz*2)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
         points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
