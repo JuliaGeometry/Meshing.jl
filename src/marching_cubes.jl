@@ -173,21 +173,21 @@ end
 
 @inline function _mc_cubeindex(iso_vals::NTuple{8,T}, iso) where T
     v = SIMD.Vec(iso_vals)
-    isov = SIMD.Vec{8, T}(iso)
-    bc = v < isov
+    bc = v < convert(T,iso)
     crossings = convert(SIMD.Vec{8,UInt8}, bc)
     shifts = SIMD.Vec((0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40))
-    any(crossings << shifts)
+    vel = crossings << shifts
+    vel[1] | vel[2] | vel[3] | vel[4] | vel[5] | vel[6] | vel[7] | vel[8]
 end
 
 @inline function _mc_cubeindex(iso_vals::Vector{T}, iso) where T
     @inbounds v = SIMD.Vec((iso_vals[1],iso_vals[2],iso_vals[3],iso_vals[4],
                   iso_vals[5],iso_vals[6],iso_vals[7],iso_vals[8]))
-    isov = SIMD.Vec{8, T}(iso)
-    bc = v < isov
+    bc = v < convert(T,iso)
     crossings = convert(SIMD.Vec{8,UInt8}, bc)
     shifts = SIMD.Vec((0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40))
-    any(crossings << shifts)
+    vel = crossings << shifts
+    vel[1] | vel[2] | vel[3] | vel[4] | vel[5] | vel[6] | vel[7] | vel[8]
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
