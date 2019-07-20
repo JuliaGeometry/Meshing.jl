@@ -20,16 +20,14 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
     vertices = Point{3,T}[]
     faces = Face{4,Int}[]
 
-    sizehint!(vertices,ceil(Int,maximum(dims)^2/2))
-    sizehint!(faces,ceil(Int,maximum(dims)^2/2))
+    sizehint!(vertices,ceil(Int,maximum(dims)^2))
+    sizehint!(faces,ceil(Int,maximum(dims)^2))
 
     n = 0
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
 
     buffer = fill(zero(Int),R[3]*2)
-
-    v = Vector{T}([0.0,0.0,0.0])
 
     #March over the voxel grid
     zi = 0
@@ -70,7 +68,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true))
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -130,8 +128,8 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     vertices = Point{3,T}[]
     faces = Face{4,Int}[]
 
-    sizehint!(vertices,ceil(Int,maximum(dims)^2/2))
-    sizehint!(faces,ceil(Int,maximum(dims)^2/2))
+    sizehint!(vertices,ceil(Int,maximum(dims)^2))
+    sizehint!(faces,ceil(Int,maximum(dims)^2))
 
     n = 0
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
@@ -139,7 +137,6 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
     buffer = fill(zero(Int),R[3]*2)
 
-    v = Vector{T}([0.0,0.0,0.0])
     grid = Vector{Float64}(undef,8)
 
     #March over the voxel grid
@@ -197,7 +194,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false))
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -245,10 +242,8 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     vertices, faces # faces are quads, indexed to vertices
 end
 
-@inline function _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt)
-    v[1] = 0.0
-    v[2] = 0.0
-    v[3] = 0.0
+@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt)
+    v = Point{3,T}(zero(T),zero(T),zero(T))
     e_count = 0
 
     #For every edge of the cube...
@@ -275,33 +270,36 @@ end
         end
 
         #Interpolate vertices and add up intersections (this can be done without multiplying)
-        k = 1
-        for j = 1:3
-            a = e0 & k
-            b = e1 & k
-            (a != 0) && (v[j] += 1.0)
-            if a != b
-                v[j] += (a != 0 ? - t : t)
-            end
-            k<<=1
-        end
+        # TODO lut table change may have made this incorrect
+        # in which case e0=e0-1 and e1=e1-1
+        xj, yj, zj = zero(T), zero(T), zero(T)
+        a = e0 & 1
+        b = e1 & 1
+        (a != 0) && (xj += one(T))
+        (a != b) && (xj += (a != 0 ? - t : t))
+        a = e0 & 2
+        b = e1 & 2
+        (a != 0) && (yj += one(T))
+        (a != b) && (yj += (a != 0 ? - t : t))
+        a = e0 & 4
+        b = e1 & 4
+        (a != 0) && (zj += 1.0)
+        (a != b) && (zj += (a != 0 ? - t : t))
+        v += Point{3,T}(xj,yj,zj)
+
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
     s = 1.0 / e_count
     if typeof(translate_pt) == Val{true}
-        @inbounds v[1] = (xi + s * v[1]) * scale[1] + origin[1]
-        @inbounds v[2] = (yi + s * v[2]) * scale[2] + origin[2]
-        @inbounds v[3] = (zi + s * v[3]) * scale[3] + origin[3]
+        @inbounds v = (Point{3,T}(xi,yi,zi)  + s .* v) .* scale + origin
     else
-        @inbounds v[1] = (xi + s * v[1])# * scale[i] + origin[i]
-        @inbounds v[2] = (yi + s * v[2])# * scale[i] + origin[i]
-        @inbounds v[3] = (zi + s * v[3])# * scale[i] + origin[i]
+        @inbounds v = (Point{3,T}(xi,yi,zi) + s .* v)# * scale[i] + origin[i]
     end
 
     #Add vertex to buffer, store pointer to vertex index in buffer
     buffer[m+1] = length(vertices)
-    push!(vertices, Point{3,T}(v[1],v[2],v[3]))
+    push!(vertices, v)
 end
 
 
