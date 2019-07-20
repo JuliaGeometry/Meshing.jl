@@ -33,14 +33,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
+
         iso_vals = (sdf[xi,yi,zi],
                     sdf[xi+1,yi,zi],
                     sdf[xi+1,yi+1,zi],
@@ -56,6 +49,15 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
+
+        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
+                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
+                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
 
         # Find the vertices where the surface intersects the cube
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
