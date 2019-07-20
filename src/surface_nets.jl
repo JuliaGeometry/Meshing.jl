@@ -69,56 +69,8 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
-                v[1] = 0.0
-                v[2] = 0.0
-                v[3] = 0.0
-                e_count = 0
 
-                #For every edge of the cube...
-                @inbounds for i=0:11
-
-                    #Use edge mask to check if it is crossed
-                    if (edge_mask & (1<<i)) == 0
-                        continue
-                    end
-
-                    #If it did, increment number of edge crossings
-                    e_count += 1
-
-                    #Now find the point of intersection
-                    e0 = cube_edges[(i<<1)+1]       #Unpack vertices
-                    e1 = cube_edges[(i<<1)+2]
-                    g0 = grid[e0+1]                 #Unpack grid values
-                    g1 = grid[e1+1]
-                    t  = g0 - g1                 #Compute point of intersection
-                    if abs(t) > eps
-                      t = g0 / t
-                    else
-                      continue
-                    end
-
-                    #Interpolate vertices and add up intersections (this can be done without multiplying)
-                    k = 1
-                    for j = 1:3
-                        a = e0 & k
-                        b = e1 & k
-                        (a != 0) && (v[j] += 1.0)
-                        if a != b
-                            v[j] += (a != 0 ? - t : t)
-                        end
-                        k<<=1
-                    end
-                end # edge check
-
-                #Now we just average the edge intersections and add them to coordinate
-                s = 1.0 / e_count
-                @inbounds v[1] = (xi + s * v[1]) * scale[1] + origin[1]
-                @inbounds v[2] = (yi + s * v[2]) * scale[2] + origin[2]
-                @inbounds v[3] = (zi + s * v[3]) * scale[3] + origin[3]
-
-                #Add vertex to buffer, store pointer to vertex index in buffer
-                buffer[m+1] = length(vertices)
-                push!(vertices, Point{3,T}(v[1],v[2],v[3]))
+                _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -243,56 +195,9 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
-                v[1] = 0.0
-                v[2] = 0.0
-                v[3] = 0.0
-                e_count = 0
 
-                #For every edge of the cube...
-                @inbounds for i=0:11
-
-                    #Use edge mask to check if it is crossed
-                    if (edge_mask & (1<<i)) == 0
-                        continue
-                    end
-
-                    #If it did, increment number of edge crossings
-                    e_count += 1
-
-                    #Now find the point of intersection
-                    e0 = cube_edges[(i<<1)+1]       #Unpack vertices
-                    e1 = cube_edges[(i<<1)+2]
-                    g0 = grid[e0+1]                 #Unpack grid values
-                    g1 = grid[e1+1]
-                    t  = g0 - g1                 #Compute point of intersection
-                    if abs(t) > eps
-                      t = g0 / t
-                    else
-                      continue
-                    end
-
-                    #Interpolate vertices and add up intersections (this can be done without multiplying)
-                    k = 1
-                    for j = 1:3
-                        a = e0 & k
-                        b = e1 & k
-                        (a != 0) && (v[j] += 1.0)
-                        if a != b
-                            v[j] += (a != 0 ? - t : t)
-                        end
-                        k<<=1
-                    end
-                end # edge check
-
-                #Now we just average the edge intersections and add them to coordinate
-                s = 1.0 / e_count
-                @inbounds v[1] = (xi + s * v[1])# * scale[i] + origin[i]
-                @inbounds v[2] = (yi + s * v[2])# * scale[i] + origin[i]
-                @inbounds v[3] = (zi + s * v[3])# * scale[i] + origin[i]
-
-                #Add vertex to buffer, store pointer to vertex index in buffer
-                buffer[m+1] = length(vertices)
-                push!(vertices, Point{3,T}(v[1],v[2],v[3]))
+                # add vertices
+                _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false))
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -339,6 +244,70 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
     vertices, faces # faces are quads, indexed to vertices
 end
+
+@inline function _sn_add_verts!(xi, yi, zi, vertices, v, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt)
+    v[1] = 0.0
+    v[2] = 0.0
+    v[3] = 0.0
+    e_count = 0
+
+    #For every edge of the cube...
+    @inbounds for i=0:11
+
+        #Use edge mask to check if it is crossed
+        if (edge_mask & (1<<i)) == 0
+            continue
+        end
+
+        #If it did, increment number of edge crossings
+        e_count += 1
+
+        #Now find the point of intersection
+        e0 = cube_edges[(i<<1)+1]       #Unpack vertices
+        e1 = cube_edges[(i<<1)+2]
+        g0 = grid[e0+1]                 #Unpack grid values
+        g1 = grid[e1+1]
+        t  = g0 - g1                 #Compute point of intersection
+        if abs(t) > eps
+            t = g0 / t
+        else
+            continue
+        end
+
+        #Interpolate vertices and add up intersections (this can be done without multiplying)
+        k = 1
+        for j = 1:3
+            a = e0 & k
+            b = e1 & k
+            (a != 0) && (v[j] += 1.0)
+            if a != b
+                v[j] += (a != 0 ? - t : t)
+            end
+            k<<=1
+        end
+    end # edge check
+
+    #Now we just average the edge intersections and add them to coordinate
+    s = 1.0 / e_count
+    if typeof(translate_pt) == Val{true}
+        @inbounds v[1] = (xi + s * v[1]) * scale[1] + origin[1]
+        @inbounds v[2] = (yi + s * v[2]) * scale[2] + origin[2]
+        @inbounds v[3] = (zi + s * v[3]) * scale[3] + origin[3]
+    else
+        @inbounds v[1] = (xi + s * v[1])# * scale[i] + origin[i]
+        @inbounds v[2] = (yi + s * v[2])# * scale[i] + origin[i]
+        @inbounds v[3] = (zi + s * v[3])# * scale[i] + origin[i]
+    end
+
+    #Add vertex to buffer, store pointer to vertex index in buffer
+    buffer[m+1] = length(vertices)
+    push!(vertices, Point{3,T}(v[1],v[2],v[3]))
+end
+
+
+#
+# Constructors
+#
 
 
 struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
