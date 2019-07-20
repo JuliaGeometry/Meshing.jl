@@ -265,8 +265,8 @@ end
         #Now find the point of intersection
         e0 = cube_edges[(i<<1)+1]       #Unpack vertices
         e1 = cube_edges[(i<<1)+2]
-        g0 = grid[e0+1]                 #Unpack grid values
-        g1 = grid[e1+1]
+        g0 = grid[e0]                 #Unpack grid values
+        g1 = grid[e1]
         t  = g0 - g1                 #Compute point of intersection
         if abs(t) > eps
             t = g0 / t
