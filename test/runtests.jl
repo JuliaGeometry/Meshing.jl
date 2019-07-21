@@ -87,11 +87,18 @@ using LinearAlgebra: dot, norm
     end
 
     @testset "marching cubes" begin
+
+        algo = MarchingCubes()
+
         sdf = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf = marching_cubes(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),(21,21,21)) do v
+        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, size=(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+
+        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), size=(21,21,21)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -103,10 +110,12 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        m = marching_cubes(sdf,0)
-        m2 = marching_cubes(sdf)
+        @test length(vertices(mfrv)) == 10968
+        m = SimpleMesh(sdf,algo)
+        m2 = SimpleMesh(sdf,algo)
         @test length(vertices(m)) == 7320
         @test length(faces(m)) == 3656
+        @test length(faces(mf)) == length(faces(mfrv))
         @test m == m2
         @test length(vertices(m)) == length(vertices(mf))
         @test length(faces(m)) == length(faces(mf))

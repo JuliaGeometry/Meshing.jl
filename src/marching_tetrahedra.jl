@@ -193,9 +193,12 @@ end
 struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
+    reduceverts::Bool
 end
 
-MarchingTetrahedra(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps)
+MarchingTetrahedra(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps, reduceverts)
+MarchingTetrahedra(iso) = MarchingTetrahedra(iso=iso)
+MarchingTetrahedra(iso,eps) = MarchingTetrahedra(iso=iso,eps=eps)
 
 function (::Type{MT})(sdf::SignedDistanceField, method::MarchingTetrahedra) where {MT <: AbstractMesh}
     vts, fcs = isosurface(sdf.data, method.iso, method.eps)
