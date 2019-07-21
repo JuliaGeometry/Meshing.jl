@@ -14,7 +14,7 @@ Tetrahedra guarentees a manifold mesh.
 function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
                                iso=0.0,
                                MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                               eps=0.00001) where {ST,FT,M<:AbstractMesh}
+                               eps=0.00001, reduceverts=Val(true)) where {ST,FT,M<:AbstractMesh}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
@@ -28,7 +28,8 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
     vts = Point{3,Float64}[]
     fcs = Face{3,Int}[]
     mt = max(nx,ny,nz)
-    sizehint!(vts, mt*mt*6)
+    typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
+    typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
@@ -63,7 +64,8 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
     end
     MT(vts,fcs)
 end
@@ -74,7 +76,7 @@ function marching_cubes(f::Function,
                         samples::NTuple{3,Int}=(256,256,256),
                         iso=0.0,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001) where {ST,FT,M<:AbstractMesh}
+                        eps=0.00001, reduceverts=Val(true)) where {ST,FT,M<:AbstractMesh}
     nx, ny, nz = samples[1], samples[2], samples[3]
     w = widths(bounds)
     orig = origin(bounds)
@@ -87,7 +89,8 @@ function marching_cubes(f::Function,
     vts = Point{3,Float64}[]
     fcs = Face{3,Int}[]
     mt = max(nx,ny,nz)
-    sizehint!(vts, mt*mt*6)
+    typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
+    typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{Point{3,Float64}}(undef, 12)
     iso_vals = Vector{Float64}(undef,8)
@@ -130,7 +133,9 @@ function marching_cubes(f::Function,
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+
     end
     MT(vts,fcs)
 end
@@ -170,6 +175,44 @@ end
                vertlist[tri_table[cubeindex][14]],
                vertlist[tri_table[cubeindex][15]])
     push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+end
+
+"""
+Create triangles by only adding unique vertices within the voxel.
+Each face may share a reference to a vertex with another face.
+"""
+@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
+    fct = length(vts)
+
+    vert_to_add = _mc_verts[cubeindex]
+    # Each vertex list will have atleast 3 elements so we can
+    # add them to the list immediately
+    push!(vts, vertlist[vert_to_add[1]])
+    push!(vts, vertlist[vert_to_add[2]])
+    push!(vts, vertlist[vert_to_add[3]])
+
+    for i = 4:12
+        elt = vert_to_add[i]
+        iszero(elt) && break
+        push!(vts, vertlist[elt])
+    end
+    offsets = _mc_connectivity[cubeindex]
+
+    # There is atleast one face so we can push it immediately
+    push!(fcs, Face{3,Int}(fct+offsets[3], fct+offsets[2], fct+offsets[1]))
+
+    iszero(offsets[4]) && return
+    push!(fcs, Face{3,Int}(fct+offsets[6], fct+offsets[5], fct+offsets[4]))
+
+    iszero(offsets[7]) && return
+    push!(fcs, Face{3,Int}(fct+offsets[9], fct+offsets[8], fct+offsets[7]))
+
+    iszero(offsets[10]) && return
+    push!(fcs, Face{3,Int}(fct+offsets[12], fct+offsets[11], fct+offsets[10]))
+
+    iszero(offsets[13]) && return
+    push!(fcs, Face{3,Int}(fct+offsets[15], fct+offsets[14], fct+offsets[13]))
+
 end
 
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
@@ -239,18 +282,21 @@ end
 struct MarchingCubes{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
+    reduceverts::Bool
 end
 
-MarchingCubes(iso::T1=0.0, eps::T2=1e-3) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps)
+MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps, reduceverts)
+MarchingCubes(iso) = MarchingCubes(iso=iso)
+MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
 
 function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(df, method.iso, MT, method.eps)
+    marching_cubes(df, method.iso, MT, method.eps, Val(method.reduceverts))
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps)
+    marching_cubes(f, h, size, method.iso, MT, method.eps, Val(method.reduceverts))
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps)
+    marching_cubes(f, h, size, method.iso, MT, method.eps, Val(method.reduceverts))
 end
