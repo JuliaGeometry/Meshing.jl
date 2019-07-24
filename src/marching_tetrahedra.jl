@@ -25,7 +25,7 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 function vertId(e::IType, x::IType, y::IType, z::IType,
-nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
+                nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
     @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
     vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
@@ -37,7 +37,7 @@ eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
 function vertPos(e::IType, x::IType, y::IType, z::IType,
-vals::NTuple{8,T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+                 vals::NTuple{8,T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
     @inbounds srcVal  = vals[ixs[1]]
@@ -59,10 +59,10 @@ Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
 """
 function getVertId(e::IType, x::IType, y::IType, z::IType,
- nx::IType, ny::IType,
- vals, iso::Real,
- vts::Dict{IType, Point{3,S}},
- eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+                   nx::IType, ny::IType,
+                   vals, iso::Real,
+                   vts::Dict{IType, Point{3,S}},
+                   eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
     if !haskey(vts, vId)
