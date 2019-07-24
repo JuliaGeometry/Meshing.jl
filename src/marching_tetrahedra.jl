@@ -4,27 +4,9 @@
 include("lut/mt.jl")
 
 """
-Checks if a voxel has faces. Should be false for most voxels.
-This function should be made as fast as possible.
-"""
-function hasFaces(vals::Vector{<:Real}, iso::Real)
-    @inbounds v = vals[1]
-    if v < iso
-        @inbounds for i=2:8
-            vals[i] >= iso && return true
-        end
-    else
-        @inbounds for i=2:8
-            vals[i] <  iso && return true
-        end
-    end
-    false
-end
-
-"""
 Determines which case in the triangle table we are dealing with
 """
-function tetIx(tIx::IType, vals::Vector{<:Real}, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
+function tetIx(tIx::IType, vals, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
     @inbounds v1 = vals[vxidx.subTets[tIx][1]]
     @inbounds v2 = vals[vxidx.subTets[tIx][2]]
     @inbounds v3 = vals[vxidx.subTets[tIx][3]]
@@ -55,7 +37,7 @@ eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
 function vertPos(e::IType, x::IType, y::IType, z::IType,
-vals::Vector{T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+vals::NTuple{8,T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
     @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
     @inbounds srcVal  = vals[ixs[1]]
@@ -78,7 +60,7 @@ present.
 """
 function getVertId(e::IType, x::IType, y::IType, z::IType,
  nx::IType, ny::IType,
- vals::Vector{T}, iso::Real,
+ vals, iso::Real,
  vts::Dict{IType, Point{3,S}},
  eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
@@ -104,11 +86,11 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals::Vector{T}, iso::Real,
-x::IType, y::IType, z::IType,
-nx::IType, ny::IType,
-vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
-eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+function procVox(vals, iso::Real,
+                 x::IType, y::IType, z::IType,
+                 nx::IType, ny::IType,
+                 vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
+                 eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
     for i::IType = 1:6
@@ -143,12 +125,17 @@ function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, index
     vxidx = VoxelIndices{indextype}()
     # process each voxel
     (nx::indextype,ny::indextype,nz::indextype) = size(lsf)
-    vals = zeros(T, 8)
-    for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
-        for l::indextype=1:8
-            @inbounds vals[l] = lsf[i+vxidx.voxCrnrPos[l][1], j+vxidx.voxCrnrPos[l][2], k+vxidx.voxCrnrPos[l][3]]
-        end
-        if hasFaces(vals,iso)
+    @inbounds for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
+        vals = (lsf[i, j, k],
+                lsf[i, j+1, k],
+                lsf[i+1, j+1, k],
+                lsf[i+1, j, k],
+                lsf[i, j, k+1],
+                lsf[i, j+1, k+1],
+                lsf[i+1, j+1, k+1],
+                lsf[i+1, j, k+1])
+        cubeindex = _get_cubeindex(vals,iso)
+        if cubeindex != 0x00 && cubeindex != 0xff
             procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps, vxidx)
         end
     end
