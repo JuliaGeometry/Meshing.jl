@@ -14,7 +14,7 @@ Tetrahedra guarentees a manifold mesh.
 function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
                                iso=0.0,
                                MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                               eps=0.00001, reduceverts=Val(true)) where {ST,FT,M<:AbstractMesh}
+                               eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
@@ -30,8 +30,8 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
-    typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
+    reduceverts == true && sizehint!(vts, mt*mt*5)
+    reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
@@ -66,8 +66,8 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     end
     MT(vts,fcs)
 end
@@ -78,7 +78,7 @@ function marching_cubes(f::Function,
                         samples::NTuple{3,Int}=(256,256,256),
                         iso=0.0,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=Val(true)) where {M<:AbstractMesh}
+                        eps=0.00001, reduceverts=true) where {M<:AbstractMesh}
 
     VertType, FaceType = _determine_types(MT)
     FT = fieldtype(fieldtype(VertType,1),1)
@@ -95,8 +95,8 @@ function marching_cubes(f::Function,
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
-    typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
+    reduceverts == true && sizehint!(vts, mt*mt*5)
+    reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
     iso_vals = Vector{FT}(undef,8)
@@ -139,8 +139,8 @@ function marching_cubes(f::Function,
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
 
     end
     MT(vts,fcs)
@@ -296,13 +296,13 @@ MarchingCubes(iso) = MarchingCubes(iso=iso)
 MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
 
 function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(df, method.iso, MT, method.eps, Val(method.reduceverts))
+    marching_cubes(df, method.iso, MT, method.eps, method.reduceverts)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps, Val(method.reduceverts))
+    marching_cubes(f, h, size, method.iso, MT, method.eps, method.reduceverts)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps, Val(method.reduceverts))
+    marching_cubes(f, h, size, method.iso, MT, method.eps, method.reduceverts)
 end
