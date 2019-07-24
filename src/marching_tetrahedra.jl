@@ -6,11 +6,11 @@ include("lut/mt.jl")
 """
 Determines which case in the triangle table we are dealing with
 """
-function tetIx(tIx::IType, vals, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    @inbounds v1 = vals[vxidx.subTets[tIx][1]]
-    @inbounds v2 = vals[vxidx.subTets[tIx][2]]
-    @inbounds v3 = vals[vxidx.subTets[tIx][3]]
-    @inbounds v4 = vals[vxidx.subTets[tIx][4]]
+@inline function tetIx(tIx::IType, vals, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
+    v1 = vals[vxidx.subTets[tIx][1]]
+    v2 = vals[vxidx.subTets[tIx][2]]
+    v3 = vals[vxidx.subTets[tIx][3]]
+    v4 = vals[vxidx.subTets[tIx][4]]
     ix = v1 < iso ? 1 : 0
     (v2 < iso) && (ix |= 2)
     (v3 < iso) && (ix |= 4)
@@ -25,9 +25,9 @@ two edges get the same index) and unique (every edge gets the same ID
 regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
-function vertId(e::IType, x::IType, y::IType, z::IType,
+@inline function vertId(e::IType, x::IType, y::IType, z::IType,
                 nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
+    dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
     vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
@@ -37,16 +37,16 @@ occurs.
 eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
-function vertPos(e::IType, x::IType, y::IType, z::IType,
+@inline function vertPos(e::IType, x::IType, y::IType, z::IType,
                  vals::NTuple{8,T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
 
-    @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
-    @inbounds srcVal  = vals[ixs[1]]
-    @inbounds tgtVal  = vals[ixs[2]]
+    ixs     = vxidx.voxEdgeCrnrs[e]
+    srcVal  = vals[ixs[1]]
+    tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    @inbounds c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
-    @inbounds c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
+    c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
+    c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
 
     Point(
           x+b*c1x+a*c2x,
@@ -59,7 +59,7 @@ end
 Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
 """
-function getVertId(e::IType, x::IType, y::IType, z::IType,
+@inline function getVertId(e::IType, x::IType, y::IType, z::IType,
                    nx::IType, ny::IType,
                    vals, iso::Real,
                    vts::Dict{IType, Point{3,S}},
@@ -76,11 +76,10 @@ end
 Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 corresponding voxel edge ID.
 """
-function voxEdgeId(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
-    @inbounds srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
-    @inbounds tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
-    @inbounds v = vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
-    v
+@inline function voxEdgeId(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
+    srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
+    tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
+    return vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
 end
 
 """
@@ -94,13 +93,13 @@ function procVox(vals, iso::Real,
                  eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
-    for i::IType = 1:6
+    @inbounds for i::IType = 1:6
         tIx = tetIx(i, vals, iso, vxidx)
         (tIx == 0 || tIx == 15) && continue
 
-        @inbounds e1 = vxidx.tetTri[tIx][1]
-        @inbounds e2 = vxidx.tetTri[tIx][2]
-        @inbounds e3 = vxidx.tetTri[tIx][3]
+        e1 = vxidx.tetTri[tIx][1]
+        e2 = vxidx.tetTri[tIx][2]
+        e3 = vxidx.tetTri[tIx][3]
 
         # add the face to the list
         push!(fcs, Face{3,IType}(
@@ -108,11 +107,11 @@ function procVox(vals, iso::Real,
                     getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                     getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
 
-        @inbounds e1 = vxidx.tetTri[tIx][4]
+        e1 = vxidx.tetTri[tIx][4]
         # bail if there are no more faces
         e1 == 0 && continue
-        @inbounds e2 = vxidx.tetTri[tIx][5]
-        @inbounds e3 = vxidx.tetTri[tIx][6]
+        e2 = vxidx.tetTri[tIx][5]
+        e3 = vxidx.tetTri[tIx][6]
         push!(fcs, Face{3,IType}(
                     getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
                     getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
