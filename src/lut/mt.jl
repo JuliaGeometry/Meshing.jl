@@ -27,7 +27,7 @@ struct VoxelIndices{T <: Integer}
     voxEdgeIx::NTuple{8,NTuple{8,T}}
     subTets::NTuple{6,NTuple{4,T}}
     tetEdgeCrnrs::NTuple{6,NTuple{2,T}}
-    tetTri::NTuple{16,NTuple{6,T}}
+    tetTri::NTuple{14,NTuple{6,T}}
 
     function VoxelIndices{T}() where {T <: Integer}
         voxCrnrPos = ((0, 0, 0),
@@ -91,8 +91,7 @@ struct VoxelIndices{T <: Integer}
                         (3,4))
 
         # triangle cases for a given tetrahedron edge code
-        tetTri = ((0,0,0,0,0,0),
-                    (1,3,4,0,0,0),
+        tetTri = ((1,3,4,0,0,0),
                     (1,5,2,0,0,0),
                     (3,5,2,3,4,5),
                     (2,6,3,0,0,0),
@@ -105,8 +104,7 @@ struct VoxelIndices{T <: Integer}
                     (2,3,6,0,0,0),
                     (3,2,5,3,5,4),
                     (1,2,5,0,0,0),
-                    (1,4,3,0,0,0),
-                    (0,0,0,0,0,0))
+                    (1,4,3,0,0,0))
 
         new{T}(voxCrnrPos,
             voxEdgeCrnrs,

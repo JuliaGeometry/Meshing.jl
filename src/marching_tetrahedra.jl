@@ -11,10 +11,11 @@ function tetIx(tIx::IType, vals, iso::Real, vxidx::VoxelIndices{IType}) where {I
     @inbounds v2 = vals[vxidx.subTets[tIx][2]]
     @inbounds v3 = vals[vxidx.subTets[tIx][3]]
     @inbounds v4 = vals[vxidx.subTets[tIx][4]]
-    ifelse(v1 < iso, 1, 0) +
-    ifelse(v2 < iso, 2, 0) +
-    ifelse(v3 < iso, 4, 0) +
-    ifelse(v4 < iso, 8, 0) + 1
+    ix = v1 < iso ? 1 : 0
+    (v2 < iso) && (ix |= 2)
+    (v3 < iso) && (ix |= 4)
+    (v4 < iso) && (ix |= 8)
+    ix
 end
 
 """
@@ -95,19 +96,27 @@ function procVox(vals, iso::Real,
     # check each sub-tetrahedron in the voxel
     for i::IType = 1:6
         tIx = tetIx(i, vals, iso, vxidx)
-        for j::IType in 1:3:4
-            @inbounds e1 = vxidx.tetTri[tIx][j]
-            # bail if there are no more faces
-            e1 == 0 && break
-            @inbounds e2 = vxidx.tetTri[tIx][j+1]
-            @inbounds e3 = vxidx.tetTri[tIx][j+2]
+        (tIx == 0 || tIx == 15) && continue
 
-            # add the face to the list
-            push!(fcs, Face{3,IType}(
-                      getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                      getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                      getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
-        end
+        @inbounds e1 = vxidx.tetTri[tIx][1]
+        @inbounds e2 = vxidx.tetTri[tIx][2]
+        @inbounds e3 = vxidx.tetTri[tIx][3]
+
+        # add the face to the list
+        push!(fcs, Face{3,IType}(
+                    getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
+                    getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
+                    getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
+
+        @inbounds e1 = vxidx.tetTri[tIx][4]
+        # bail if there are no more faces
+        e1 == 0 && continue
+        @inbounds e2 = vxidx.tetTri[tIx][5]
+        @inbounds e3 = vxidx.tetTri[tIx][6]
+        push!(fcs, Face{3,IType}(
+                    getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
+                    getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
+                    getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
     end
 end
 
