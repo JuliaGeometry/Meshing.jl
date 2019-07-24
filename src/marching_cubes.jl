@@ -20,18 +20,20 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
     w = widths(h)
     orig = origin(HyperRectangle(sdf))
 
+    VertType, FaceType = _determine_types(MT,FT)
+
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
-    s = Point{3,Float64}(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
+    s = VertType(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
 
     # arrays for vertices and faces
-    vts = Point{3,Float64}[]
-    fcs = Face{3,Int}[]
+    vts = VertType[]
+    fcs = FaceType[]
     mt = max(nx,ny,nz)
     typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
     typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    vertlist = Vector{Point{3,Float64}}(undef, 12)
+    vertlist = Vector{VertType}(undef, 12)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
 
@@ -51,21 +53,21 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
+        points = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
+                  VertType(xi,yi-1,zi-1) .* s .+ orig,
+                  VertType(xi,yi,zi-1) .* s .+ orig,
+                  VertType(xi-1,yi,zi-1) .* s .+ orig,
+                  VertType(xi-1,yi-1,zi) .* s .+ orig,
+                  VertType(xi,yi-1,zi) .* s .+ orig,
+                  VertType(xi,yi,zi) .* s .+ orig,
+                  VertType(xi-1,yi,zi) .* s .+ orig)
 
         # Find the vertices where the surface intersects the cube
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
-        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     end
     MT(vts,fcs)
 end
@@ -76,34 +78,38 @@ function marching_cubes(f::Function,
                         samples::NTuple{3,Int}=(256,256,256),
                         iso=0.0,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=Val(true)) where {ST,FT,M<:AbstractMesh}
+                        eps=0.00001, reduceverts=Val(true)) where {M<:AbstractMesh}
+
+    VertType, FaceType = _determine_types(MT)
+    FT = fieldtype(fieldtype(VertType,1),1)
+
     nx, ny, nz = samples[1], samples[2], samples[3]
-    w = widths(bounds)
-    orig = origin(bounds)
+    w = VertType(widths(bounds))
+    orig = VertType(origin(bounds))
 
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
-    s = Point{3,Float64}(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
+    s = VertType(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
 
     # arrays for vertices and faces
-    vts = Point{3,Float64}[]
-    fcs = Face{3,Int}[]
+    vts = VertType[]
+    fcs = FaceType[]
     mt = max(nx,ny,nz)
     typeof(reduceverts) == Val{true} && sizehint!(vts, mt*mt*5)
     typeof(reduceverts) == Val{false} && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    vertlist = Vector{Point{3,Float64}}(undef, 12)
-    iso_vals = Vector{Float64}(undef,8)
+    vertlist = Vector{VertType}(undef, 12)
+    iso_vals = Vector{FT}(undef,8)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-        points = (Point{3,Float64}(xi-1,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi-1) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi-1,zi) .* s .+ orig,
-                  Point{3,Float64}(xi,yi,zi) .* s .+ orig,
-                  Point{3,Float64}(xi-1,yi,zi) .* s .+ orig)
+        points = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
+                  VertType(xi,yi-1,zi-1) .* s .+ orig,
+                  VertType(xi,yi,zi-1) .* s .+ orig,
+                  VertType(xi-1,yi,zi-1) .* s .+ orig,
+                  VertType(xi-1,yi-1,zi) .* s .+ orig,
+                  VertType(xi,yi-1,zi) .* s .+ orig,
+                  VertType(xi,yi,zi) .* s .+ orig,
+                  VertType(xi-1,yi,zi) .* s .+ orig)
 
         if zi == 1
             for i = 1:8
@@ -133,55 +139,55 @@ function marching_cubes(f::Function,
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
         # Create the triangle
-        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
-        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+        typeof(reduceverts) == Val{true} && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        typeof(reduceverts) == Val{false} && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
 
     end
     MT(vts,fcs)
 end
 
-@inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex)
+@inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     fct = length(vts) + 3
 
     push!(vts, vertlist[tri_table[cubeindex][1]],
                vertlist[tri_table[cubeindex][2]],
                vertlist[tri_table[cubeindex][3]])
-    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    push!(fcs, FaceType(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][4]) && return
     fct += 3
     push!(vts, vertlist[tri_table[cubeindex][4]],
                vertlist[tri_table[cubeindex][5]],
                vertlist[tri_table[cubeindex][6]])
-    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    push!(fcs, FaceType(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][7]) && return
     fct += 3
     push!(vts, vertlist[tri_table[cubeindex][7]],
                vertlist[tri_table[cubeindex][8]],
                vertlist[tri_table[cubeindex][9]])
-    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    push!(fcs, FaceType(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][10]) && return
     fct += 3
     push!(vts, vertlist[tri_table[cubeindex][10]],
                vertlist[tri_table[cubeindex][11]],
                vertlist[tri_table[cubeindex][12]])
-    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    push!(fcs, FaceType(fct, fct-1, fct-2))
 
     iszero(tri_table[cubeindex][13]) && return
     fct += 3
     push!(vts, vertlist[tri_table[cubeindex][13]],
                vertlist[tri_table[cubeindex][14]],
                vertlist[tri_table[cubeindex][15]])
-    push!(fcs, Face{3,Int}(fct, fct-1, fct-2))
+    push!(fcs, FaceType(fct, fct-1, fct-2))
 end
 
 """
 Create triangles by only adding unique vertices within the voxel.
 Each face may share a reference to a vertex with another face.
 """
-@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex)
+@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     fct = length(vts)
 
     vert_to_add = _mc_verts[cubeindex]
@@ -199,19 +205,19 @@ Each face may share a reference to a vertex with another face.
     offsets = _mc_connectivity[cubeindex]
 
     # There is atleast one face so we can push it immediately
-    push!(fcs, Face{3,Int}(fct+offsets[3], fct+offsets[2], fct+offsets[1]))
+    push!(fcs, FaceType(fct+offsets[3], fct+offsets[2], fct+offsets[1]))
 
     iszero(offsets[4]) && return
-    push!(fcs, Face{3,Int}(fct+offsets[6], fct+offsets[5], fct+offsets[4]))
+    push!(fcs, FaceType(fct+offsets[6], fct+offsets[5], fct+offsets[4]))
 
     iszero(offsets[7]) && return
-    push!(fcs, Face{3,Int}(fct+offsets[9], fct+offsets[8], fct+offsets[7]))
+    push!(fcs, FaceType(fct+offsets[9], fct+offsets[8], fct+offsets[7]))
 
     iszero(offsets[10]) && return
-    push!(fcs, Face{3,Int}(fct+offsets[12], fct+offsets[11], fct+offsets[10]))
+    push!(fcs, FaceType(fct+offsets[12], fct+offsets[11], fct+offsets[10]))
 
     iszero(offsets[13]) && return
-    push!(fcs, Face{3,Int}(fct+offsets[15], fct+offsets[14], fct+offsets[13]))
+    push!(fcs, FaceType(fct+offsets[15], fct+offsets[14], fct+offsets[13]))
 
 end
 
