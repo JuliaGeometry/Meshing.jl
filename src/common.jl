@@ -25,15 +25,15 @@ and will default to the `FieldType` for `SignedDistanceField`,
 and Point{3,Float64}/Face{3,Int} for direct function sampling.
 """
 function _determine_types(meshtype, fieldtype=Float64)
-        # determine the point and face types
+    # determine the point and face types
     # preference is given to the Mesh types
     # followed by SDF if unspecified
-    if vertextype(meshtype) != Any
+    if vertextype(meshtype) !== Any
         VertType = vertextype(meshtype)
     else
         VertType = Point{3, fieldtype}
     end
-    if facetype(meshtype) != Any
+    if facetype(meshtype) !== Any
         FaceType = facetype(meshtype)
     else
         FaceType = Face{3, Int}
