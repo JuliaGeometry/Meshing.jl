@@ -47,6 +47,9 @@ corners (thereby preventing degeneracies).
     b       = one(T)-a
     c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
     c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
+    
+    #TODO SIMD These with broadcasting. This shoudl also fix the propogation when using
+    # forward diff
 
     Point(
           x+b*c1x+a*c2x,
@@ -66,6 +69,7 @@ present.
                    eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
 
     vId = vertId(e, x, y, z, nx, ny, vxidx)
+    # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
     if !haskey(vts, vId)
         vts[vId] = vertPos(e, x, y, z, vals, iso, eps, vxidx)
     end
