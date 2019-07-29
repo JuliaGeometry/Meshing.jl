@@ -45,17 +45,10 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
-    c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
-    
-    #TODO SIMD These with broadcasting. This shoudl also fix the propogation when using
-    # forward diff
+    c1= vxidx.voxCrnrPos[ixs[1]]
+    c2 = vxidx.voxCrnrPos[ixs[2]]
 
-    Point(
-          x+b*c1x+a*c2x,
-          y+b*c1y+a*c2y,
-          z+b*c1z+a*c2z
-    )
+    Point{3,Float64}(x,y,z) + c1 .* b + c2.* a
 end
 
 """

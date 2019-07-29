@@ -21,7 +21,7 @@ Voxel corner and edge indexing conventions
  X
 """
 struct VoxelIndices{T <: Integer}
-    voxCrnrPos::NTuple{8,NTuple{3,T}}
+    voxCrnrPos::NTuple{8,Point{3,T}}
     voxEdgeCrnrs::NTuple{19, NTuple{2,T}}
     voxEdgeDir::NTuple{19,T}
     voxEdgeIx::NTuple{8,NTuple{8,T}}
@@ -30,14 +30,14 @@ struct VoxelIndices{T <: Integer}
     tetTri::NTuple{14,NTuple{6,T}}
 
     function VoxelIndices{T}() where {T <: Integer}
-        voxCrnrPos = ((0, 0, 0),
-                      (0, 1, 0),
-                      (1, 1, 0),
-                      (1, 0, 0),
-                      (0, 0, 1),
-                      (0, 1, 1),
-                      (1, 1, 1),
-                      (1, 0, 1))
+        voxCrnrPos = (Point(0, 0, 0),
+                      Point(0, 1, 0),
+                      Point(1, 1, 0),
+                      Point(1, 0, 0),
+                      Point(0, 0, 1),
+                      Point(0, 1, 1),
+                      Point(1, 1, 1),
+                      Point(1, 0, 1))
         # the voxel IDs at either end of the tetrahedra edges, by edge ID
         voxEdgeCrnrs = ((1, 2),
                         (2, 3),
