@@ -15,7 +15,7 @@ Algorithms included:
 This package inherits the [mesh types](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1)
 from [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl).
 
-The algorithms operate on a `Function` or a `SignedDistanceField` and output a concrete `AbstractMesh`. For example:
+The algorithms operate on a `SignedDistanceField` and output a concrete `AbstractMesh`. For example:
 
 ```
 using Meshing
@@ -25,15 +25,16 @@ using FileIO
 
 # Mesh an equation of sphere in the Axis-Aligned Bounding box starting
 # at -1,-1,-1 and widths of 2,2,2
-m = GLNormalMesh(HyperRectangle(Vec(-1,-1,-1.), Vec(2,2,2.)), MarchingCubes()) do v
-    sqrt(sum(dot(v,v))) - 1
+sdf = SignedDistanceField(HyperRectangle(Vec3f0(-1), Vec3f0(2))) do v
+    sqrt(sum(dot(v, v))) - 1
 end
+m = GLNormalMesh(sdf, MarchingCubes())
 
 # save the Sphere as a PLY file
 save("sphere.ply",m)
 ```
 
-The general API is: ```(::Type{MT})(sdf::Function, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}``` or ```(::Type{MT})(sdf::SignedDistanceField, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}```
+The general API is: ```(::Type{MT})(sdf::SignedDistanceField, method::AbstractMeshingAlgorithm) where {MT <: AbstractMesh}```
 
 
 For a full listing of concrete `AbstractMesh` types see [GeometryTypes.jl mesh documentation](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1).
