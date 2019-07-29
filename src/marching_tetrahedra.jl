@@ -127,7 +127,7 @@ an approximate isosurface by the method of marching tetrahedra.
 function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, indextype::Type{IT}) where {T<:Real, IT <: Integer}
     vertex_eltype = promote_type(T, typeof(iso), typeof(eps))
     vts        = Dict{indextype, Point{3,vertex_eltype}}()
-    fcs        = Array{Face{3,indextype}}(undef, 0)
+    fcs        = Face{3,indextype}[]
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
     vxidx = VoxelIndices{indextype}()
@@ -162,10 +162,14 @@ function isosurface(lsf, isoval, eps, indextype=Int, index_start=one(Int))
         vtD[x] = k
         k += one(indextype)
     end
-    fcAry = Face{3,indextype}[Face{3,indextype}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
+    # rewrite the face array with the new vertex values
+    for i in eachindex(fcs)
+        f = fcs[i]
+        fcs[i] = Face{3, indextype}(vtD[f[1]], vtD[f[2]], vtD[f[3]])
+    end
     vtAry = collect(values(vts))
 
-    (vtAry, fcAry)
+    (vtAry, fcs)
 end
 
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
