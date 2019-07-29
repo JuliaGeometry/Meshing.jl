@@ -6,11 +6,11 @@ include("lut/mt.jl")
 """
 Determines which case in the triangle table we are dealing with
 """
-@inline function tetIx(tIx::IType, vals, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    v1 = vals[vxidx.subTets[tIx][1]]
-    v2 = vals[vxidx.subTets[tIx][2]]
-    v3 = vals[vxidx.subTets[tIx][3]]
-    v4 = vals[vxidx.subTets[tIx][4]]
+@inline function tetIx(tIx::IType, vals, iso::Real) where {IType <: Integer}
+    v1 = vals[subTets[tIx][1]]
+    v2 = vals[subTets[tIx][2]]
+    v3 = vals[subTets[tIx][3]]
+    v4 = vals[subTets[tIx][4]]
     ix = v1 < iso ? 1 : 0
     (v2 < iso) && (ix |= 2)
     (v3 < iso) && (ix |= 4)
@@ -26,9 +26,9 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 @inline function vertId(e::IType, x::IType, y::IType, z::IType,
-                nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
-    vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
+                nx::IType, ny::IType) where {IType <: Integer}
+    dx, dy, dz = voxCrnrPos[voxEdgeCrnrs[e][1]]
+    voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
 """
@@ -38,15 +38,15 @@ eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
 @inline function vertPos(e::IType, x::IType, y::IType, z::IType,
-                 vals::NTuple{8,T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+                 vals::NTuple{8,T}, iso::Real, eps::Real) where {T<:Real, IType <: Integer}
 
-    ixs     = vxidx.voxEdgeCrnrs[e]
+    ixs     = voxEdgeCrnrs[e]
     srcVal  = vals[ixs[1]]
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1= vxidx.voxCrnrPos[ixs[1]]
-    c2 = vxidx.voxCrnrPos[ixs[2]]
+    c1= voxCrnrPos[ixs[1]]
+    c2 = voxCrnrPos[ixs[2]]
 
     Point{3,Float64}(x,y,z) + c1 .* b + c2.* a
 end
@@ -59,12 +59,12 @@ present.
                    nx::IType, ny::IType,
                    vals, iso::Real,
                    vts::Dict{IType, Point{3,S}},
-                   eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+                   eps::Real) where {T <: Real, S <: Real, IType <: Integer}
 
-    vId = vertId(e, x, y, z, nx, ny, vxidx)
+    vId = vertId(e, x, y, z, nx, ny)
     # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
     if !haskey(vts, vId)
-        vts[vId] = vertPos(e, x, y, z, vals, iso, eps, vxidx)
+        vts[vId] = vertPos(e, x, y, z, vals, iso, eps)
     end
     vId
 end
@@ -73,10 +73,10 @@ end
 Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 corresponding voxel edge ID.
 """
-@inline function voxEdgeId(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
-    srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
-    tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
-    return vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
+@inline function voxEdgeId(subTetIx, tetEdgeIx, IType)
+    srcVoxCrnr = subTets[subTetIx][tetEdgeCrnrs[tetEdgeIx][1]]
+    tgtVoxCrnr = subTets[subTetIx][tetEdgeCrnrs[tetEdgeIx][2]]
+    return IType(voxEdgeIx[srcVoxCrnr][tgtVoxCrnr])
 end
 
 """
@@ -87,32 +87,32 @@ function procVox(vals, iso::Real,
                  x::IType, y::IType, z::IType,
                  nx::IType, ny::IType,
                  vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
-                 eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+                 eps::Real) where {T <: Real, S <: Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
     @inbounds for i::IType = 1:6
-        tIx = tetIx(i, vals, iso, vxidx)
+        tIx = tetIx(i, vals, iso)
         (tIx == 0 || tIx == 15) && continue
 
-        e1 = vxidx.tetTri[tIx][1]
-        e2 = vxidx.tetTri[tIx][2]
-        e3 = vxidx.tetTri[tIx][3]
+        e1 = tetTri[tIx][1]
+        e2 = tetTri[tIx][2]
+        e3 = tetTri[tIx][3]
 
         # add the face to the list
         push!(fcs, Face{3,IType}(
-                    getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                    getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                    getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
+                    getVertId(voxEdgeId(i, e1, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e2, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e3, IType), x, y, z, nx, ny, vals, iso, vts, eps)))
 
-        e1 = vxidx.tetTri[tIx][4]
+        e1 = tetTri[tIx][4]
         # bail if there are no more faces
         e1 == 0 && continue
-        e2 = vxidx.tetTri[tIx][5]
-        e3 = vxidx.tetTri[tIx][6]
+        e2 = tetTri[tIx][5]
+        e3 = tetTri[tIx][6]
         push!(fcs, Face{3,IType}(
-                    getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                    getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                    getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
+                    getVertId(voxEdgeId(i, e1, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e2, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e3, IType), x, y, z, nx, ny, vals, iso, vts, eps)))
     end
 end
 
@@ -127,7 +127,6 @@ function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, index
     fcs        = Face{3,indextype}[]
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
-    vxidx = VoxelIndices{indextype}()
     # process each voxel
     (nx::indextype,ny::indextype,nz::indextype) = size(lsf)
     @inbounds for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
@@ -141,7 +140,7 @@ function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, index
                 lsf[i+1, j, k+1])
         cubeindex = _get_cubeindex(vals,iso)
         if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps, vxidx)
+            procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps)
         end
     end
 
