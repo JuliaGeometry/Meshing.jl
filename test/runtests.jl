@@ -224,9 +224,9 @@ using LinearAlgebra: dot, norm
             data = randn(5, 5, 5)
             iso = 0.2
             eps = 1e-4
-            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Int))
-            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Int32))
-            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Int64))
+            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Point{3, Float16}, Face{3,UInt32}))
+            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Point{3, Float32}, Face{3,Int16}))
+            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Point{3, Float64}, Face{3,UInt}))
         end
         @testset "Float16" begin
             sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
