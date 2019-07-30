@@ -4,35 +4,18 @@
 include("lut/mt.jl")
 
 """
-Checks if a voxel has faces. Should be false for most voxels.
-This function should be made as fast as possible.
-"""
-function hasFaces(vals::Vector{<:Real}, iso::Real)
-    @inbounds v = vals[1]
-    if v < iso
-        @inbounds for i=2:8
-            vals[i] >= iso && return true
-        end
-    else
-        @inbounds for i=2:8
-            vals[i] <  iso && return true
-        end
-    end
-    false
-end
-
-"""
 Determines which case in the triangle table we are dealing with
 """
-function tetIx(tIx::IType, vals::Vector{<:Real}, iso::Real, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    @inbounds v1 = vals[vxidx.subTets[tIx][1]]
-    @inbounds v2 = vals[vxidx.subTets[tIx][2]]
-    @inbounds v3 = vals[vxidx.subTets[tIx][3]]
-    @inbounds v4 = vals[vxidx.subTets[tIx][4]]
-    ifelse(v1 < iso, 1, 0) +
-    ifelse(v2 < iso, 2, 0) +
-    ifelse(v3 < iso, 4, 0) +
-    ifelse(v4 < iso, 8, 0) + 1
+@inline function tetIx(tIx::IType, vals, iso::Real) where {IType <: Integer}
+    v1 = vals[subTets[tIx][1]]
+    v2 = vals[subTets[tIx][2]]
+    v3 = vals[subTets[tIx][3]]
+    v4 = vals[subTets[tIx][4]]
+    ix = v1 < iso ? 1 : 0
+    (v2 < iso) && (ix |= 2)
+    (v3 < iso) && (ix |= 4)
+    (v4 < iso) && (ix |= 8)
+    ix
 end
 
 """
@@ -42,10 +25,10 @@ two edges get the same index) and unique (every edge gets the same ID
 regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
-function vertId(e::IType, x::IType, y::IType, z::IType,
-nx::IType, ny::IType, vxidx::VoxelIndices{IType}) where {IType <: Integer}
-    @inbounds dx, dy, dz = vxidx.voxCrnrPos[vxidx.voxEdgeCrnrs[e][1]]
-    vxidx.voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
+@inline function vertId(e::IType, x::IType, y::IType, z::IType,
+                nx::IType, ny::IType) where {IType <: Integer}
+    dx, dy, dz = voxCrnrPos[voxEdgeCrnrs[e][1]]
+    voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
 """
@@ -54,37 +37,34 @@ occurs.
 eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
-function vertPos(e::IType, x::IType, y::IType, z::IType,
-vals::Vector{T}, iso::Real, eps::Real, vxidx::VoxelIndices{IType}) where {T<:Real, IType <: Integer}
+@inline function vertPos(e::IType, x::IType, y::IType, z::IType,
+                 vals::NTuple{8,T}, iso::Real, eps::Real) where {T<:Real, IType <: Integer}
 
-    @inbounds ixs     = vxidx.voxEdgeCrnrs[e]
-    @inbounds srcVal  = vals[ixs[1]]
-    @inbounds tgtVal  = vals[ixs[2]]
+    ixs     = voxEdgeCrnrs[e]
+    srcVal  = vals[ixs[1]]
+    tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    @inbounds c1x,c1y,c1z = vxidx.voxCrnrPos[ixs[1]]
-    @inbounds c2x,c2y,c2z = vxidx.voxCrnrPos[ixs[2]]
+    c1= voxCrnrPos[ixs[1]]
+    c2 = voxCrnrPos[ixs[2]]
 
-    Point(
-          x+b*c1x+a*c2x,
-          y+b*c1y+a*c2y,
-          z+b*c1z+a*c2z
-    )
+    Point{3,Float64}(x,y,z) + c1 .* b + c2.* a
 end
 
 """
 Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
 """
-function getVertId(e::IType, x::IType, y::IType, z::IType,
- nx::IType, ny::IType,
- vals::Vector{T}, iso::Real,
- vts::Dict{IType, Point{3,S}},
- eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+@inline function getVertId(e::IType, x::IType, y::IType, z::IType,
+                   nx::IType, ny::IType,
+                   vals, iso::Real,
+                   vts::Dict{IType, Point{3,S}},
+                   eps::Real) where {T <: Real, S <: Real, IType <: Integer}
 
-    vId = vertId(e, x, y, z, nx, ny, vxidx)
+    vId = vertId(e, x, y, z, nx, ny)
+    # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
     if !haskey(vts, vId)
-        vts[vId] = vertPos(e, x, y, z, vals, iso, eps, vxidx)
+        vts[vId] = vertPos(e, x, y, z, vals, iso, eps)
     end
     vId
 end
@@ -93,39 +73,46 @@ end
 Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 corresponding voxel edge ID.
 """
-function voxEdgeId(subTetIx::IType, tetEdgeIx::IType, vxidx::VoxelIndices{IType}) where IType <: Integer
-    @inbounds srcVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][1]]
-    @inbounds tgtVoxCrnr::IType = vxidx.subTets[subTetIx][vxidx.tetEdgeCrnrs[tetEdgeIx][2]]
-    @inbounds v = vxidx.voxEdgeIx[srcVoxCrnr][tgtVoxCrnr]
-    v
+@inline function voxEdgeId(subTetIx, tetEdgeIx, IType)
+    srcVoxCrnr = subTets[subTetIx][tetEdgeCrnrs[tetEdgeIx][1]]
+    tgtVoxCrnr = subTets[subTetIx][tetEdgeCrnrs[tetEdgeIx][2]]
+    return IType(voxEdgeIx[srcVoxCrnr][tgtVoxCrnr])
 end
 
 """
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals::Vector{T}, iso::Real,
-x::IType, y::IType, z::IType,
-nx::IType, ny::IType,
-vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
-eps::Real, vxidx::VoxelIndices{IType}) where {T <: Real, S <: Real, IType <: Integer}
+function procVox(vals, iso::Real,
+                 x::IType, y::IType, z::IType,
+                 nx::IType, ny::IType,
+                 vts::Dict{IType, Point{3,S}}, fcs::Vector{Face{3,IType}},
+                 eps::Real) where {T <: Real, S <: Real, IType <: Integer}
 
     # check each sub-tetrahedron in the voxel
-    for i::IType = 1:6
-        tIx = tetIx(i, vals, iso, vxidx)
-        for j::IType in 1:3:4
-            @inbounds e1 = vxidx.tetTri[tIx][j]
-            # bail if there are no more faces
-            e1 == 0 && break
-            @inbounds e2 = vxidx.tetTri[tIx][j+1]
-            @inbounds e3 = vxidx.tetTri[tIx][j+2]
+    @inbounds for i::IType = 1:6
+        tIx = tetIx(i, vals, iso)
+        (tIx == 0 || tIx == 15) && continue
 
-            # add the face to the list
-            push!(fcs, Face{3,IType}(
-                      getVertId(voxEdgeId(i, e1, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                      getVertId(voxEdgeId(i, e2, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx),
-                      getVertId(voxEdgeId(i, e3, vxidx), x, y, z, nx, ny, vals, iso, vts, eps, vxidx)))
-        end
+        e1 = tetTri[tIx][1]
+        e2 = tetTri[tIx][2]
+        e3 = tetTri[tIx][3]
+
+        # add the face to the list
+        push!(fcs, Face{3,IType}(
+                    getVertId(voxEdgeId(i, e1, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e2, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e3, IType), x, y, z, nx, ny, vals, iso, vts, eps)))
+
+        e1 = tetTri[tIx][4]
+        # bail if there are no more faces
+        e1 == 0 && continue
+        e2 = tetTri[tIx][5]
+        e3 = tetTri[tIx][6]
+        push!(fcs, Face{3,IType}(
+                    getVertId(voxEdgeId(i, e1, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e2, IType), x, y, z, nx, ny, vals, iso, vts, eps),
+                    getVertId(voxEdgeId(i, e3, IType), x, y, z, nx, ny, vals, iso, vts, eps)))
     end
 end
 
@@ -137,19 +124,23 @@ an approximate isosurface by the method of marching tetrahedra.
 function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, indextype::Type{IT}) where {T<:Real, IT <: Integer}
     vertex_eltype = promote_type(T, typeof(iso), typeof(eps))
     vts        = Dict{indextype, Point{3,vertex_eltype}}()
-    fcs        = Array{Face{3,indextype}}(undef, 0)
+    fcs        = Face{3,indextype}[]
     sizehint!(vts, div(length(lsf),8))
     sizehint!(fcs, div(length(lsf),4))
-    vxidx = VoxelIndices{indextype}()
     # process each voxel
     (nx::indextype,ny::indextype,nz::indextype) = size(lsf)
-    vals = zeros(T, 8)
-    for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
-        for l::indextype=1:8
-            @inbounds vals[l] = lsf[i+vxidx.voxCrnrPos[l][1], j+vxidx.voxCrnrPos[l][2], k+vxidx.voxCrnrPos[l][3]]
-        end
-        if hasFaces(vals,iso)
-            procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps, vxidx)
+    @inbounds for k::indextype = 1:nz-1, j::indextype = 1:ny-1, i::indextype = 1:nx-1
+        vals = (lsf[i, j, k],
+                lsf[i, j+1, k],
+                lsf[i+1, j+1, k],
+                lsf[i+1, j, k],
+                lsf[i, j, k+1],
+                lsf[i, j+1, k+1],
+                lsf[i+1, j+1, k+1],
+                lsf[i+1, j, k+1])
+        cubeindex = _get_cubeindex(vals,iso)
+        if cubeindex != 0x00 && cubeindex != 0xff
+            procVox(vals, iso, i, j, k, nx, ny, vts, fcs, eps)
         end
     end
 
@@ -167,10 +158,14 @@ function isosurface(lsf, isoval, eps, indextype=Int, index_start=one(Int))
         vtD[x] = k
         k += one(indextype)
     end
-    fcAry = Face{3,indextype}[Face{3,indextype}(vtD[f[1]], vtD[f[2]], vtD[f[3]]) for f in fcs]
+    # rewrite the face array with the new vertex values
+    for i in eachindex(fcs)
+        f = fcs[i]
+        fcs[i] = Face{3, indextype}(vtD[f[1]], vtD[f[2]], vtD[f[3]])
+    end
     vtAry = collect(values(vts))
 
-    (vtAry, fcAry)
+    (vtAry, fcs)
 end
 
 isosurface(lsf,isoval) = isosurface(lsf,isoval, convert(eltype(lsf), 0.001))
