@@ -1,5 +1,8 @@
 # Meshing
 
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaGeometry.github.io/Meshing.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaGeometry.github.io/Meshing.jl/dev)
+
 [![Build Status](https://travis-ci.org/JuliaGeometry/Meshing.jl.svg)](https://travis-ci.org/JuliaGeometry/Meshing.jl)
 [![codecov.io](http://codecov.io/github/JuliaGeometry/Meshing.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaGeometry/Meshing.jl?branch=master)
 
