@@ -9,5 +9,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/juliageometry/meshing.jl.git",
+    repo = "github.com/JuliaGeometry/Meshing.jl.git",
 )
