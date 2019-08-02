@@ -5,7 +5,9 @@ makedocs(
     sitename = "Meshing",
     format = Documenter.HTML(),
     modules = [Meshing],
-    pages = ["Internals" => "internals.md"]
+    pages = ["API" => "api.md",
+             "Examples" => "examples.md",
+             "Internals" => "internals.md"]
 )
 
 deploydocs(
