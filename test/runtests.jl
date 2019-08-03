@@ -8,6 +8,15 @@ using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
+    @testset "type helpers" begin
+        dt = Meshing._determine_types
+        @test dt(HomogenousMesh) == (Point{3,Float64}, Face{3,Int64})
+        @test dt(GLNormalMesh) == (Point{3,Float32}, Face{3,OffsetInteger{-1,UInt32}})
+        @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
+        @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
+        @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})        
+    end
+
     @testset "surface nets" begin
         sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
