@@ -12,15 +12,21 @@ However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
 function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
+                        iso=0.0,
+                        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
+                        eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh}
+    VertType, FaceType = _determine_types(M, FT)
+    marching_cubes(sdf, VertType, FaceType, iso, M, eps, reduceverts)
+end
+
+function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::Type{FaceType},
                                iso=0.0,
                                MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                               eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh}
+                               eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh, VertType, FaceType}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
     orig = origin(HyperRectangle(sdf))
-
-    VertType, FaceType = _determine_types(MT,FT)
 
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
@@ -75,13 +81,13 @@ end
 
 function marching_cubes(f::Function,
                         bounds::HyperRectangle,
+                        ::Type{VertType}, ::Type{FaceType},
                         samples::NTuple{3,Int}=(256,256,256),
                         iso=0.0,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=true) where {M<:AbstractMesh}
+                        eps=0.00001, reduceverts=true) where {M<:AbstractMesh, VertType, FaceType}
 
-    VertType, FaceType = _determine_types(MT)
-    FT = fieldtype(fieldtype(VertType,1),1)
+    FT = eltype(VertType)
 
     nx, ny, nz = samples[1], samples[2], samples[3]
     w = VertType(widths(bounds))
@@ -295,14 +301,17 @@ MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2}
 MarchingCubes(iso) = MarchingCubes(iso=iso)
 MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
 
-function (::Type{MT})(df::SignedDistanceField, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(df, method.iso, MT, method.eps, method.reduceverts)
+function (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::MarchingCubes)::MT where {MT <: AbstractMesh, ST, FT}
+    VertType, FaceType = _determine_types(MT, FT)
+    marching_cubes(df, VertType, FaceType, method.iso, MT, method.eps, method.reduceverts)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps, method.reduceverts)
+    VertType, FaceType = _determine_types(MT)
+    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts)
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
-    marching_cubes(f, h, size, method.iso, MT, method.eps, method.reduceverts)
+    VertType, FaceType = _determine_types(MT)
+    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts)
 end
