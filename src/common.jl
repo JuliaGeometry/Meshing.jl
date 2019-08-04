@@ -24,7 +24,7 @@ Preference is given to the types specified by the Mesh call,
 and will default to the `FieldType` for `SignedDistanceField`,
 and Point{3,Float64}/Face{3,Int} for direct function sampling.
 """
-function _determine_types(meshtype, fieldtype=Float64)
+function _determine_types(meshtype, fieldtype=Float64, facelen=3)
     # determine the point and face types
     # preference is given to the Mesh types
     # followed by SDF if unspecified
@@ -36,7 +36,7 @@ function _determine_types(meshtype, fieldtype=Float64)
     if facetype(meshtype) !== Any
         FaceType = facetype(meshtype)
     else
-        FaceType = Face{3, Int}
+        FaceType = Face{facelen, Int}
     end
     VertType, FaceType
 end

@@ -15,6 +15,7 @@ using LinearAlgebra: dot, norm
         @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
         @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
         @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})        
+        @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
     end
 
     @testset "surface nets" begin
