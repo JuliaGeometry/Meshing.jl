@@ -15,10 +15,10 @@ include("lut/sn.jl")
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
+function surface_nets(data::Vector{T}, dims,eps,scale,origin, ::Type{VertType}, ::Type{FaceType}) where {T, VertType, FaceType}
 
-    vertices = Point{3,T}[]
-    faces = Face{4,Int}[]
+    vertices = VertType[]
+    faces = FaceType[]
 
     sizehint!(vertices,ceil(Int,maximum(dims)^2))
     sizehint!(faces,ceil(Int,maximum(dims)^2))
@@ -68,7 +68,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true))
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -93,9 +93,19 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin) where {T}
 
                     #Remember to flip orientation depending on the sign of the corner.
                     if (mask & 0x01) != 0x00
-                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
+                        if length(FaceType) == 4
+                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1))
+                        elseif length(FaceType) == 3
+                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1))
+                            push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-dv+1]+1, buffer[m+1]+1))
+                        end
                     else
-                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
+                        if length(FaceType) == 4
+                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1))
+                        elseif length(FaceType) == 3
+                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1))
+                            push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-du+1]+1, buffer[m+1]+1))
+                        end
                     end
                 end
                 xi += 1
@@ -120,13 +130,12 @@ end
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
+function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin,::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
 
-    # TODO
-    T = Float64
+    T = eltype(VertType)
 
-    vertices = Point{3,T}[]
-    faces = Face{4,Int}[]
+    vertices = VertType[]
+    faces = FaceType[]
 
     sizehint!(vertices,ceil(Int,maximum(dims)^2))
     sizehint!(faces,ceil(Int,maximum(dims)^2))
@@ -137,7 +146,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
     buffer = fill(zero(Int),R[3]*2)
 
-    grid = Vector{Float64}(undef,8)
+    grid = Vector{T}(undef,8)
 
     #March over the voxel grid
     zi = 0
@@ -155,14 +164,14 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
             @inbounds while xi < dims[1]-1
 
                 # Read in 8 field values around this vertex and store them in an array
-                points = (Point{3,Float64}(xi,yi,zi).* scale + origin,
-                          Point{3,Float64}(xi+1,yi,zi).* scale + origin,
-                          Point{3,Float64}(xi,yi+1,zi).* scale + origin,
-                          Point{3,Float64}(xi+1,yi+1,zi).* scale + origin,
-                          Point{3,Float64}(xi,yi,zi+1).* scale + origin,
-                          Point{3,Float64}(xi+1,yi,zi+1).* scale + origin,
-                          Point{3,Float64}(xi,yi+1,zi+1).* scale + origin,
-                          Point{3,Float64}(xi+1,yi+1,zi+1).* scale + origin)
+                points = (VertType(xi,yi,zi).* scale + origin,
+                          VertType(xi+1,yi,zi).* scale + origin,
+                          VertType(xi,yi+1,zi).* scale + origin,
+                          VertType(xi+1,yi+1,zi).* scale + origin,
+                          VertType(xi,yi,zi+1).* scale + origin,
+                          VertType(xi+1,yi,zi+1).* scale + origin,
+                          VertType(xi,yi+1,zi+1).* scale + origin,
+                          VertType(xi+1,yi+1,zi+1).* scale + origin)
 
                 if xi == 0
                     for i = 1:8
@@ -194,7 +203,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false))
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -219,9 +228,9 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
 
                     #Remember to flip orientation depending on the sign of the corner.
                     if (mask & 0x01) != 0x00
-                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
+                        push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
                     else
-                        push!(faces,Face{4,Int}(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
+                        push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
                     end
                 end
                 xi += 1
@@ -242,8 +251,8 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin)
     vertices, faces # faces are quads, indexed to vertices
 end
 
-@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt)
-    v = Point{3,T}(zero(T),zero(T),zero(T))
+@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt, ::Type{VertType}) where {VertType}
+    v = zero(VertType)
     e_count = 0
 
     #For every edge of the cube...
@@ -285,16 +294,16 @@ end
         b = e1 & 4
         (a != 0) && (zj += 1.0)
         (a != b) && (zj += (a != 0 ? - t : t))
-        v += Point{3,T}(xj,yj,zj)
+        v += VertType(xj,yj,zj)
 
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
     s = 1.0 / e_count
     if typeof(translate_pt) == Val{true}
-        @inbounds v = (Point{3,T}(xi,yi,zi)  + s .* v) .* scale + origin
+        @inbounds v = (VertType(xi,yi,zi)  + s .* v) .* scale + origin
     else
-        @inbounds v = (Point{3,T}(xi,yi,zi) + s .* v)# * scale[i] + origin[i]
+        @inbounds v = (VertType(xi,yi,zi) + s .* v)# * scale[i] + origin[i]
     end
 
     #Add vertex to buffer, store pointer to vertex index in buffer
@@ -318,7 +327,9 @@ NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, 
 NaiveSurfaceNets(iso) = NaiveSurfaceNets(iso=iso)
 NaiveSurfaceNets(iso,eps) = NaiveSurfaceNets(iso=iso,eps=eps)
 
-function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
+function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::NaiveSurfaceNets) where {MT <: AbstractMesh, ST,FT}
+
+    VertType, FaceType = _determine_types(MT, FT, 4)
     bounds = sdf.bounds
     orig = origin(bounds)
     w = widths(bounds)
@@ -338,14 +349,16 @@ function (::Type{MT})(sdf::SignedDistanceField, method::NaiveSurfaceNets) where 
                             size(sdf.data),
                             method.eps,
                             scale,
-                            orig)
+                            orig, VertType, FaceType)
     MT(vts, fcs)::MT
 end
 
 function (::Type{MT})(f::Function, bounds::HyperRectangle, size::NTuple{3,Int}, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
+    VertType, FaceType = _determine_types(MT, Float64, 4)
+
     orig = origin(bounds)
     w = widths(bounds)
-    scale = w ./ Point(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+    scale = w ./ VertType(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
     # TODO ISO val
 
@@ -353,7 +366,7 @@ function (::Type{MT})(f::Function, bounds::HyperRectangle, size::NTuple{3,Int}, 
                             size,
                             method.eps,
                             scale,
-                            orig)
+                            orig, VertType, FaceType)
     MT(vts, fcs)::MT
 end
 

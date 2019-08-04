@@ -5,10 +5,10 @@ using Profile
 
 
 # algo type to profile
-algo = MarchingCubes()
+algo = MarchingTetrahedra()
 
 # set if using function or SDF variant
-fn_mesh = true
+fn_mesh = false
 
 ## Constructions
 torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v

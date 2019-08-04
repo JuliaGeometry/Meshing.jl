@@ -8,6 +8,16 @@ using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
+    @testset "type helpers" begin
+        dt = Meshing._determine_types
+        @test dt(HomogenousMesh) == (Point{3,Float64}, Face{3,Int64})
+        @test dt(GLNormalMesh) == (Point{3,Float32}, Face{3,OffsetInteger{-1,UInt32}})
+        @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
+        @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
+        @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})        
+        @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
+    end
+
     @testset "surface nets" begin
         sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
@@ -224,9 +234,9 @@ using LinearAlgebra: dot, norm
             data = randn(5, 5, 5)
             iso = 0.2
             eps = 1e-4
-            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Int))
-            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Int32))
-            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Int64))
+            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Point{3, Float16}, Face{3,UInt32}))
+            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Point{3, Float32}, Face{3,Int16}))
+            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Point{3, Float64}, Face{3,UInt}))
         end
         @testset "Float16" begin
             sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
