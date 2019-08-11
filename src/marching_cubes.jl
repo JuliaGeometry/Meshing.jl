@@ -40,7 +40,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::T
     reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
-    @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
+    @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
 
 
         iso_vals = (sdf[xi,yi,zi],
