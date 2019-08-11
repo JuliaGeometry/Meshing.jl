@@ -11,10 +11,10 @@ Determines which case in the triangle table we are dealing with
     v2 = vals[subTets[tIx][2]]
     v3 = vals[subTets[tIx][3]]
     v4 = vals[subTets[tIx][4]]
-    ix = v1 < iso ? 1 : 0
-    (v2 < iso) && (ix |= 2)
-    (v3 < iso) && (ix |= 4)
-    (v4 < iso) && (ix |= 8)
+    ix = v1 < iso ? 0x01 : 0x00
+    (v2 < iso) && (ix |= 0x02)
+    (v3 < iso) && (ix |= 0x04)
+    (v4 < iso) && (ix |= 0x08)
     ix
 end
 
@@ -91,27 +91,22 @@ function procVox(vals, iso::Real, x, y, z, nx, ny,
     # check each sub-tetrahedron in the voxel
     @inbounds for i = 1:6
         tIx = tetIx(i, vals, iso)
-        (tIx == 0 || tIx == 15) && continue
+        (tIx == 0x00 || tIx == 0x0f) && continue
 
-        e1 = tetTri[tIx][1]
-        e2 = tetTri[tIx][2]
-        e3 = tetTri[tIx][3]
+        e = tetTri[tIx]
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e1), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e2), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e3), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
+                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
+                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
+                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
 
-        e1 = tetTri[tIx][4]
         # bail if there are no more faces
-        e1 == 0 && continue
-        e2 = tetTri[tIx][5]
-        e3 = tetTri[tIx][6]
+        e[4] == 0 && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e1), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e2), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e3), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
+                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
+                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
+                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
     end
 end
 
