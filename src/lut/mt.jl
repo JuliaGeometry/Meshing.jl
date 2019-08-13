@@ -53,7 +53,8 @@ const voxEdgeCrnrs = ((1, 2),
 # direction codes:
 # 0 => +x, 1 => +y, 2 => +z,
 # 3 => +xy, 4 => +xz, 5 => +yz, 6 => +xyz
-const voxEdgeDir = (1,0,1,0,1,0,1,0,2,2,2,2,3,4,5,3,4,5,6)
+const voxEdgeDir = (0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x02,
+                    0x02,0x02,0x02,0x03,0x04,0x05,0x03,0x04,0x05,0x06)
 
 # For a pair of corner IDs, the edge ID joining them
 # 0 denotes a pair with no edge

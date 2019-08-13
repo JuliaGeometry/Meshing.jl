@@ -2,6 +2,8 @@
 #Look up Table
 include("lut/mc.jl")
 
+using Base.Threads
+
 """
 `marching_cubes(sdf::SignedDistanceField, [iso = 0.0,] [MT = HomogenousMesh{Point{3,Float64},Face{3,Int}}])`
 
@@ -40,40 +42,58 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::T
     reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
-    @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
 
+    # lock for pushing to the array
+    #spinlock = Threads.SpinLock()
+    cubeindices = Vector{UInt8}(undef, nx-1)
 
-        iso_vals = (sdf[xi,yi,zi],
-                    sdf[xi+1,yi,zi],
-                    sdf[xi+1,yi+1,zi],
-                    sdf[xi,yi+1,zi],
-                    sdf[xi,yi,zi+1],
-                    sdf[xi+1,yi,zi+1],
-                    sdf[xi+1,yi+1,zi+1],
-                    sdf[xi,yi+1,zi+1])
+    @inbounds for zi = 1:nz-1, yi = 1:ny-1
+        @inbounds @threads for xi = 1:nx-1
+            iso_vals::NTuple{8,FT} = (sdf[xi,yi,zi],
+                        sdf[xi+1,yi,zi],
+                        sdf[xi+1,yi+1,zi],
+                        sdf[xi,yi+1,zi],
+                        sdf[xi,yi,zi+1],
+                        sdf[xi+1,yi,zi+1],
+                        sdf[xi+1,yi+1,zi+1],
+                        sdf[xi,yi+1,zi+1])
 
-        #Determine the index into the edge table which
-        #tells us which vertices are inside of the surface
-        cubeindex = _get_cubeindex(iso_vals, iso)
+            #Determine the index into the edge table which
+            #tells us which vertices are inside of the surface
+            cubeindices[xi] = _get_cubeindex(iso_vals, iso)
+        end
+        for xi = 1:nx-1
+            cubeindex = cubeindices[xi]
+            # Cube is entirely in/out of the surface
+            (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+            iso_vals::NTuple{8,FT} = (sdf[xi,yi,zi],
+                        sdf[xi+1,yi,zi],
+                        sdf[xi+1,yi+1,zi],
+                        sdf[xi,yi+1,zi],
+                        sdf[xi,yi,zi+1],
+                        sdf[xi+1,yi,zi+1],
+                        sdf[xi+1,yi+1,zi+1],
+                        sdf[xi,yi+1,zi+1])
 
-        points = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi,zi) .* s .+ orig,
-                  VertType(xi-1,yi,zi) .* s .+ orig)
+            points::NTuple{8,VertType} = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
+                    VertType(xi,yi-1,zi-1) .* s .+ orig,
+                    VertType(xi,yi,zi-1) .* s .+ orig,
+                    VertType(xi-1,yi,zi-1) .* s .+ orig,
+                    VertType(xi-1,yi-1,zi) .* s .+ orig,
+                    VertType(xi,yi-1,zi) .* s .+ orig,
+                    VertType(xi,yi,zi) .* s .+ orig,
+                    VertType(xi-1,yi,zi) .* s .+ orig)
 
-        # Find the vertices where the surface intersects the cube
-        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+            #lock(spinlock)
+            # Find the vertices where the surface intersects the cube
+            find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
 
-        # Create the triangle
-        reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            # Create the triangle
+            reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            #unlock(spinlock)
+        end
     end
     MT(vts,fcs)
 end
