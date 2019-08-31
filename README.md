@@ -9,7 +9,7 @@
 [![codecov.io](http://codecov.io/github/JuliaGeometry/Meshing.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaGeometry/Meshing.jl?branch=master)
 
 ## About
-This package provides a comprehensive suite of meshing algorithms for use on distance fields.
+This package provides a comprehensive suite of meshing (isosurface extraction) algorithms for use on distance fields and other structured datasets.
 
 Algorithms included:
 * [Marching Tetrahedra](https://en.wikipedia.org/wiki/Marching_tetrahedra)
