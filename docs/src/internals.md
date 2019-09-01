@@ -8,6 +8,7 @@ This is some brief documentation on the basic internal functions.
 
 ```@docs
 Meshing._get_cubeindex
+Meshing._get_cubeindex_pos
 Meshing._determine_types
 ```
 
