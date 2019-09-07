@@ -22,7 +22,7 @@ end
 function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::Type{FaceType},
                                iso=0.0,
                                MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                               eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh, VertType, FaceType}
+                               eps=0.00001, reduceverts=true, insidepositive=Val(false)) where {ST,FT,M<:AbstractMesh, VertType, FaceType}
     nx, ny, nz = size(sdf)
     h = HyperRectangle(sdf)
     w = widths(h)
@@ -54,7 +54,7 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::T
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = _get_cubeindex(iso_vals, iso)
+        cubeindex = insidepositive === Val(true) ? _get_cubeindex_pos(iso_vals, iso) : _get_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
@@ -85,7 +85,7 @@ function marching_cubes(f::Function,
                         samples::NTuple{3,Int}=(256,256,256),
                         iso=0.0,
                         MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=true) where {M<:AbstractMesh, VertType, FaceType}
+                        eps=0.00001, reduceverts=true, insidepositive=Val(false)) where {M<:AbstractMesh, VertType, FaceType}
 
     FT = eltype(VertType)
 
@@ -134,7 +134,7 @@ function marching_cubes(f::Function,
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = _get_cubeindex(iso_vals, iso)
+        cubeindex = insidepositive === Val(true) ? _get_cubeindex_pos(iso_vals, iso) : _get_cubeindex(iso_vals, iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
@@ -313,15 +313,15 @@ end
 
 function (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::MarchingCubes)::MT where {MT <: AbstractMesh, ST, FT}
     VertType, FaceType = _determine_types(MT, FT)
-    marching_cubes(df, VertType, FaceType, method.iso, MT, method.eps, method.reduceverts)
+    marching_cubes(df, VertType, FaceType, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
     VertType, FaceType = _determine_types(MT)
-    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts)
+    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
     VertType, FaceType = _determine_types(MT)
-    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts)
+    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
 end
