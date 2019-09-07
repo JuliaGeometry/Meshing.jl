@@ -1,8 +1,10 @@
 
 """
+    _get_cubeindex(iso_vals, iso)
+
 given `iso_vals` and iso, return an 8 bit value corresponding
-to each corner of a cube. 0 indicates in the isosurface
-and 1 indicates outside the surface
+to each corner of a cube. In each bit position, 
+0 indicates in the isosurface and 1 indicates outside the surface
 """
 @inline function _get_cubeindex(iso_vals, iso)
     cubeindex = iso_vals[1] < iso ? 0x01 : 0x00
@@ -17,6 +19,8 @@ and 1 indicates outside the surface
 end
 
 """
+    _determine_types(meshtype, fieldtype=Float64, facelen=3)
+
 Given a subtype of AbstractMesh, determine the
 type of vertex/point and face to use for internal computations.
 

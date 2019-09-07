@@ -152,6 +152,13 @@ function marching_cubes(f::Function,
     MT(vts,fcs)
 end
 
+
+"""
+    _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+
+Create triangles by only adding vertices within the voxel.
+Each face does not share a reference to a vertex with another face.
+"""
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     fct = length(vts) + 3
 
@@ -190,6 +197,8 @@ end
 end
 
 """
+    _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+
 Create triangles by only adding unique vertices within the voxel.
 Each face may share a reference to a vertex with another face.
 """
@@ -227,6 +236,11 @@ Each face may share a reference to a vertex with another face.
 
 end
 
+"""
+    find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+
+Find the vertices where the surface intersects the cube
+"""
 @inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
     if !iszero(edge_table[cubeindex] & 0x001)
         vertlist[1] =
@@ -278,8 +292,12 @@ end
     end
 end
 
-# Linearly interpolate the position where an isosurface cuts
-# an edge between two vertices, each with their own scalar value
+"""
+    vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
+
+Linearly interpolate the position where an isosurface cuts
+an edge between two vertices, each with their own scalar value
+"""
 function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
 
     abs(iso - valp1) < eps && return p1

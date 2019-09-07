@@ -4,6 +4,8 @@
 include("lut/mt.jl")
 
 """
+    tetIx(tIx, vals, iso::Real)
+
 Determines which case in the triangle table we are dealing with
 """
 @inline function tetIx(tIx, vals, iso::Real)
@@ -19,6 +21,8 @@ Determines which case in the triangle table we are dealing with
 end
 
 """
+    vertId(e, x, y, z, nx, ny)
+
 Determines a unique integer ID associated with the edge. This is used
 as a key in the vertex dictionary. It needs to be both unambiguous (no
 two edges get the same index) and unique (every edge gets the same ID
@@ -31,6 +35,8 @@ for vertex sharing to be implemented properly.
 end
 
 """
+    vertPos(e, x, y, z, vals::NTuple{8,T}, iso::Real, eps::Real, ::Type{VertType}) where {T<:Real, VertType}
+
 Assuming an edge crossing, determines the point in space at which it
 occurs.
 eps represents the "bump" factor to keep vertices away from voxel
@@ -50,6 +56,12 @@ corners (thereby preventing degeneracies).
 end
 
 """
+    getVertId(e, x, y, z, nx, ny,
+                vals, iso::Real,
+                vts::Dict,
+                vtsAry::Vector,
+                eps::Real, ::Type{VertType}) where {VertType}
+
 Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
 """
@@ -70,6 +82,7 @@ present.
 end
 
 """
+    voxEdgeId(subTetIx, tetEdgeIx)
 Given a sub-tetrahedron case and a tetrahedron edge ID, determines the
 corresponding voxel edge ID.
 """
@@ -80,6 +93,11 @@ corresponding voxel edge ID.
 end
 
 """
+    procVox(vals, iso::Real, x, y, z, nx, ny,
+                    vts::Dict, vtsAry::Vector, fcs::Vector,
+                    eps::Real,
+                    ::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
+                
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
@@ -143,6 +161,8 @@ function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, ::Typ
 end
 
 """
+    _correct_vertices!(vts, sdf::SignedDistanceField)
+
 The marchingTetrahedra function returns vertices on the (1-based) indices of the
 SDF's data, ignoring its actual bounds. This function adjusts the vertices in
 place so that they correspond to points within the SDF bounds.
