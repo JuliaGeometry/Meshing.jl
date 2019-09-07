@@ -199,9 +199,9 @@ Each face may share a reference to a vertex with another face.
     vert_to_add = _mc_verts[cubeindex]
     # Each vertex list will have atleast 3 elements so we can
     # add them to the list immediately
-    push!(vts, vertlist[vert_to_add[1]])
-    push!(vts, vertlist[vert_to_add[2]])
-    push!(vts, vertlist[vert_to_add[3]])
+    push!(vts, vertlist[vert_to_add[1]],
+               vertlist[vert_to_add[2]],
+               vertlist[vert_to_add[3]])
 
     for i = 4:12
         elt = vert_to_add[i]
