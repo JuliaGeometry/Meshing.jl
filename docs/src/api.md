@@ -49,12 +49,6 @@ Below is a comparison of the algorithms:
 
 ```@docs
 MarchingCubes
-```
-
-```@docs
 MarchingTetrahedra
-```
-
-```@docs
 NaiveSurfaceNets
 ```
