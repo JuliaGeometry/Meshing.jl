@@ -1,7 +1,7 @@
 
 """
-    MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true)
-    MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true)
+    MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(iso)
     MarchingCubes(iso,eps)
 
@@ -10,24 +10,26 @@ This algorithm provides a good balance between performance and vertex count.
 In contrast to the other algorithms, vertices may be repeated, so face counts
 may be large.
 
-- `iso` specifies the iso level to use for surface extraction.
-- `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
-- `reduceverts` if true will merge vertices within a voxel to reduce mesh size by around 30% and with no performance penalty.
+- `iso` (default: 0.0) specifies the iso level to use for surface extraction.
+- `eps` (default: 1e-3) is the tolerence around a voxel corner to ensure manifold mesh generation.
+- `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with no performance penalty.
+- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct MarchingCubes{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
     reduceverts::Bool
+    insidepositive::Bool
 end
 
-MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps, reduceverts)
+MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
 MarchingCubes(iso) = MarchingCubes(iso=iso)
 MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
 
 
 """
-    MarchingTetrahedra(iso=0.0, eps=1e-3, reduceverts=true)
-    MarchingTetrahedra(;iso=0.0, eps=1e-3, reduceverts=true)
+    MarchingTetrahedra(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    MarchingTetrahedra(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingTetrahedra(iso)
     MarchingTetrahedra(iso,eps)
 
@@ -39,20 +41,22 @@ making this algorithm useful for topological analysis.
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` reserved for future use.
+- `insidepositive` reserved for future use.
 """
 struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
     reduceverts::Bool
+    insidepositive::Bool
 end
 
-MarchingTetrahedra(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps, reduceverts)
+MarchingTetrahedra(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
 MarchingTetrahedra(iso) = MarchingTetrahedra(iso=iso)
 MarchingTetrahedra(iso,eps) = MarchingTetrahedra(iso=iso,eps=eps)
 
 """
-    NaiveSurfaceNets(iso=0.0, eps=1e-3, reduceverts=true)
-    NaiveSurfaceNets(;iso=0.0, eps=1e-3, reduceverts=true)
+    NaiveSurfaceNets(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    NaiveSurfaceNets(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     NaiveSurfaceNets(iso)
     NaiveSurfaceNets(iso,eps)
 
@@ -64,13 +68,15 @@ guarantee accuracy and generates quad faces.
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` reserved for future use.
+- `insidepositive` reserved for future use.
 """
 struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
     iso::T
     eps::T
     reduceverts::Bool
+    insidepositive::Bool
 end
 
-NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps, reduceverts)
+NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
 NaiveSurfaceNets(iso) = NaiveSurfaceNets(iso=iso)
 NaiveSurfaceNets(iso,eps) = NaiveSurfaceNets(iso=iso,eps=eps)
