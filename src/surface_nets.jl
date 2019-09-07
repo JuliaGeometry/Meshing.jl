@@ -312,21 +312,6 @@ end
 end
 
 
-#
-# Constructors
-#
-
-
-struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
-    iso::T
-    eps::T
-    reduceverts::Bool
-end
-
-NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps, reduceverts)
-NaiveSurfaceNets(iso) = NaiveSurfaceNets(iso=iso)
-NaiveSurfaceNets(iso,eps) = NaiveSurfaceNets(iso=iso,eps=eps)
-
 function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::NaiveSurfaceNets) where {MT <: AbstractMesh, ST,FT}
 
     VertType, FaceType = _determine_types(MT, FT, 4)

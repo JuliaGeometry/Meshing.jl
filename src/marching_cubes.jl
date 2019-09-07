@@ -291,15 +291,7 @@ function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
     return p
 end
 
-struct MarchingCubes{T} <: AbstractMeshingAlgorithm
-    iso::T
-    eps::T
-    reduceverts::Bool
-end
 
-MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps, reduceverts)
-MarchingCubes(iso) = MarchingCubes(iso=iso)
-MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
 
 function (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::MarchingCubes)::MT where {MT <: AbstractMesh, ST, FT}
     VertType, FaceType = _determine_types(MT, FT)
