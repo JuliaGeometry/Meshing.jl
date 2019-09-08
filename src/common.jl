@@ -65,3 +65,20 @@ function _determine_types(meshtype, fieldtype=Float64, facelen=3)
     end
     VertType, FaceType
 end
+
+#
+# General isosurface docstring
+# TODO FORMATTING?
+
+@doc """
+
+    `function isosurface(sdf::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm,
+                         [ VertType = SVector{3,Float64} ], [ FaceType} = SVector{3, Int} ] ;
+                         origin = SVector(-1.0,-1.0,-1.0), widths = SVector(2.0,2.0,2.0))`
+
+    `function isosurface(f::Function, method::AbstractMeshingAlgorithm,
+                         [ VertType = SVector{3,Float64} ], [FaceType = SVector{3, Int} ] ;
+                         origin = SVector(-1.0,-1.0,-1.0), widths = SVector(2.0,2.0,2.0),
+                         samples=(50,50,50))`
+
+""" isosurface

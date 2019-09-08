@@ -30,7 +30,7 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 @inline function vertId(e, x, y, z, nx, ny)
-    dx, dy, dz = voxCrnrPos[voxEdgeCrnrs[e][1]]
+    dx, dy, dz = voxCrnrPosInt[voxEdgeCrnrs[e][1]]
     voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
@@ -49,8 +49,8 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1= voxCrnrPos[ixs[1]]
-    c2 = voxCrnrPos[ixs[2]]
+    c1= voxCrnrPos(VertType)[ixs[1]]
+    c2 = voxCrnrPos(VertType)[ixs[2]]
 
     VertType(x,y,z) + c1 .* b + c2.* a
 end
@@ -97,7 +97,7 @@ end
                     vts::Dict, vtsAry::Vector, fcs::Vector,
                     eps::Real,
                     ::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
-                
+
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
@@ -133,61 +133,47 @@ end
 Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
-function marchingTetrahedra(lsf::AbstractArray{T,3}, iso::Real, eps::Real, ::Type{VertType}, ::Type{FaceType}) where {T<:Real, VertType, FaceType}
+function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{3, Int};
+                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2)) where {T, VertType, FaceType}
     vts        = Dict{Int, Int}()
     fcs        = FaceType[]
     vtsAry = VertType[]
-    sizehint!(vts, div(length(lsf),8))
-    sizehint!(vtsAry, div(length(lsf),8))
-    sizehint!(fcs, div(length(lsf),4))
+    sizehint!(vts, div(length(sdf),8))
+    sizehint!(vtsAry, div(length(sdf),8))
+    sizehint!(fcs, div(length(sdf),4))
     # process each voxel
-    nx::Int, ny::Int, nz::Int = size(lsf)
+    nx::Int, ny::Int, nz::Int = size(sdf)
     @inbounds for k = 1:nz-1, j = 1:ny-1, i= 1:nx-1
-        vals = (lsf[i, j, k],
-                lsf[i, j+1, k],
-                lsf[i+1, j+1, k],
-                lsf[i+1, j, k],
-                lsf[i, j, k+1],
-                lsf[i, j+1, k+1],
-                lsf[i+1, j+1, k+1],
-                lsf[i+1, j, k+1])
-        cubeindex = _get_cubeindex(vals,iso)
+        vals = (sdf[i, j, k],
+                sdf[i, j+1, k],
+                sdf[i+1, j+1, k],
+                sdf[i+1, j, k],
+                sdf[i, j, k+1],
+                sdf[i, j+1, k+1],
+                sdf[i+1, j+1, k+1],
+                sdf[i+1, j, k+1])
+        cubeindex = _get_cubeindex(vals,method.iso)
         if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, iso, i, j, k, nx, ny, vts, vtsAry, fcs, eps, VertType, FaceType)
+            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps, VertType, FaceType)
         end
     end
 
-    (vtsAry,fcs)
+    _correct_vertices!(vtsAry, size(sdf), origin, widths, VertType)
+
+    vtsAry,fcs
 end
 
 """
-    _correct_vertices!(vts, sdf::SignedDistanceField)
+    _correct_vertices!(vts, size, origin, widths, VertType)
 
 The marchingTetrahedra function returns vertices on the (1-based) indices of the
 SDF's data, ignoring its actual bounds. This function adjusts the vertices in
 place so that they correspond to points within the SDF bounds.
 """
-function _correct_vertices!(vts, sdf::SignedDistanceField)
-    bounds = HyperRectangle(sdf)
-    orig = origin(bounds)
-    w = widths(bounds)
-    s = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+function _correct_vertices!(vts, size, origin, widths, ::Type{VertType}) where {VertType}
+    s = widths ./ VertType(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
     for i in eachindex(vts)
-        vts[i] = (vts[i] .- 1) .* s .+ orig  # subtract 1 to fix 1-indexing
+        vts[i] = (vts[i] .- 1) .* s .+ origin  # subtract 1 to fix 1-indexing
     end
 end
 
-function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::MarchingTetrahedra) where {ST, FT, MT <: AbstractMesh}
-    vertex_eltype = promote_type(FT, typeof(method.iso), typeof(method.eps))
-    VertType, FaceType = _determine_types(MT,vertex_eltype)
-    vts, fcs = marchingTetrahedra(sdf.data, method.iso, method.eps, VertType, FaceType)
-    _correct_vertices!(vts, sdf)
-    MT(vts, fcs)::MT
-end
-
-function (::Type{MT})(volume::Array{T, 3}, method::MarchingTetrahedra) where {MT <: AbstractMesh, T}
-    vertex_eltype = promote_type(T, typeof(method.iso), typeof(method.eps))
-    VertType, FaceType = _determine_types(MT,vertex_eltype)
-    vts, fcs = marchingTetrahedra(volume, convert(T, method.iso), convert(T, method.eps), VertType, FaceType)
-    MT(vts, fcs)::MT
-end

@@ -15,7 +15,21 @@ include("lut/sn.jl")
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(data::Vector{T}, dims,eps,scale,origin, ::Type{VertType}, ::Type{FaceType}) where {T, VertType, FaceType}
+function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
+                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2)) where {T, VertType, FaceType}
+
+    scale = widths ./ VertType(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+
+    dims = size(sdf)
+    data = vec(sdf)
+
+    # Run iso surface additions here
+    # TODO
+    if method.iso != 0.0
+        for i = eachindex(data)
+            data[i] -= method.iso
+        end
+    end
 
     vertices = VertType[]
     faces = FaceType[]
@@ -68,7 +82,7 @@ function surface_nets(data::Vector{T}, dims,eps,scale,origin, ::Type{VertType}, 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(true), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, T, Val(true), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -130,38 +144,42 @@ end
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin,::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
+function isosurface(f::Function, method::NaiveSurfaceNets,
+                    ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
+                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2),
+                    samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
 
-    T = eltype(VertType)
+    scale = widths ./ VertType(samples .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
+
 
     vertices = VertType[]
     faces = FaceType[]
 
-    sizehint!(vertices,ceil(Int,maximum(dims)^2))
-    sizehint!(faces,ceil(Int,maximum(dims)^2))
+    sizehint!(vertices,ceil(Int,maximum(samples)^2))
+    sizehint!(faces,ceil(Int,maximum(samples)^2))
 
     n = 0
-    R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
+    R = Array{Int}([1, (samples[1]+1), (samples[1]+1)*(samples[2]+1)])
     buf_no = 1
 
     buffer = fill(zero(Int),R[3]*2)
 
-    grid = Vector{T}(undef,8)
+    grid = Vector{eltype(VertType)}(undef,8)
 
     #March over the voxel grid
     zi = 0
-    @inbounds while zi<dims[3]-1
+    @inbounds while zi<samples[3]-1
 
         # m is the pointer into the buffer we are going to use.
         # This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
-        m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
+        m = 1 + (samples[1]+1) * (1 + buf_no * (samples[2]+1))
 
         yi=0
-        @inbounds while yi<dims[2]-1
+        @inbounds while yi<samples[2]-1
 
             xi=0
-            @inbounds while xi < dims[1]-1
+            @inbounds while xi < samples[1]-1
 
                 # Read in 8 field values around this vertex and store them in an array
                 points = (VertType(xi,yi,zi).* scale + origin,
@@ -203,7 +221,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin,::Type{V
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, Val(false), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, eltype(VertType), Val(false), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -242,7 +260,7 @@ function surface_nets(f::Function, dims::NTuple{3,Int},eps,scale,origin,::Type{V
             m += 2
         end
         zi += 1
-        n+=dims[1]
+        n+=samples[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
@@ -311,50 +329,3 @@ end
     push!(vertices, v)
 end
 
-
-function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::NaiveSurfaceNets) where {MT <: AbstractMesh, ST,FT}
-
-    VertType, FaceType = _determine_types(MT, FT, 4)
-    bounds = sdf.bounds
-    orig = origin(bounds)
-    w = widths(bounds)
-    scale = w ./ Point(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-
-    d = vec(sdf.data)
-
-    # Run iso surface additions here as to not
-    # penalize surface net inner loops, and we are using a copy anyway
-    if method.iso != 0.0
-        for i = eachindex(d)
-            d[i] -= method.iso
-        end
-    end
-
-    vts, fcs = surface_nets(d,
-                            size(sdf.data),
-                            method.eps,
-                            scale,
-                            orig, VertType, FaceType)
-    MT(vts, fcs)::MT
-end
-
-function (::Type{MT})(f::Function, bounds::HyperRectangle, size::NTuple{3,Int}, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
-    VertType, FaceType = _determine_types(MT, Float64, 4)
-
-    orig = origin(bounds)
-    w = widths(bounds)
-    scale = w ./ VertType(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-
-    # TODO ISO val
-
-    vts, fcs = surface_nets(f,
-                            size,
-                            method.eps,
-                            scale,
-                            orig, VertType, FaceType)
-    MT(vts, fcs)::MT
-end
-
-function (::Type{MT})(f::Function, bounds::HyperRectangle, method::NaiveSurfaceNets;size::NTuple{3,Int}=(128,128,128)) where {MT <: AbstractMesh}
-    MT(f,bounds,size,method)
-end

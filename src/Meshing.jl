@@ -1,16 +1,16 @@
 module Meshing
 
-using GeometryTypes
-
-abstract type AbstractMeshingAlgorithm end
+using GeometryTypes,
+      StaticArrays
 
 include("algorithmtypes.jl")
+include("geometrytypes_api.jl")
 include("common.jl")
 include("marching_tetrahedra.jl")
 include("marching_cubes.jl")
 include("surface_nets.jl")
 
-export marching_cubes,
+export isosurface,
        MarchingCubes,
        MarchingTetrahedra,
        NaiveSurfaceNets
