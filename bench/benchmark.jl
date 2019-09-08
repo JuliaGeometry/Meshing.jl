@@ -1,6 +1,7 @@
 using BenchmarkTools
 using Meshing
 using GeometryTypes
+using StaticArrays
 
 # Define a parent BenchmarkGroup to contain our suite
 const suite = BenchmarkGroup()
@@ -40,11 +41,11 @@ fn_torus(v) = (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 #
 
 for algo in algos_sdf
-    suite["SDF Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(sdf_torus, $algo)
+    suite["SDF Mesh"][string(typeof(algo))] = @benchmarkable isosurface(sdf_torus.data, $algo, origin=origin(sdf_torus.bounds), widths=widths(sdf_torus.bounds))
 end
 
 for algo in algos_fn
-    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(fn_torus, HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), $algo)
+    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable isosurface(fn_torus, $algo, origin=SVector(-2,-2,-2.), widths=SVector(4,4,4.), samples=(81,81,81))
 end
 
 # If a cache of tuned parameters already exists, use it, otherwise, tune and cache

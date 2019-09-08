@@ -11,33 +11,20 @@ and generates fewer vertices and faces (about 1/4 as many).
 However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
-function marching_cubes(sdf::SignedDistanceField{3,ST,FT},
-                        iso=0.0,
-                        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=true) where {ST,FT,M<:AbstractMesh}
-    VertType, FaceType = _determine_types(M, FT)
-    marching_cubes(sdf, VertType, FaceType, iso, M, eps, reduceverts)
-end
-
-function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::Type{FaceType},
-                               iso=0.0,
-                               MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                               eps=0.00001, reduceverts=true, insidepositive=Val(false)) where {ST,FT,M<:AbstractMesh, VertType, FaceType}
+function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
+                    origin=SVector{3, Float64}(-1,-1,-1), widths=SVector{3, Float64}(2,2,2)) where {T, VertType, FaceType}
     nx, ny, nz = size(sdf)
-    h = HyperRectangle(sdf)
-    w = widths(h)
-    orig = origin(HyperRectangle(sdf))
 
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
-    s = VertType(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
+    s = VertType(widths[1]/(nx-1), widths[2]/(ny-1), widths[3]/(nz-1))
 
     # arrays for vertices and faces
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    reduceverts == true && sizehint!(vts, mt*mt*5)
-    reduceverts == false && sizehint!(vts, mt*mt*6)
+    method.reduceverts == true && sizehint!(vts, mt*mt*5)
+    method.reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
     @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
@@ -54,68 +41,59 @@ function marching_cubes(sdf::SignedDistanceField{3,ST,FT}, ::Type{VertType}, ::T
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = insidepositive === Val(true) ? _get_cubeindex_pos(iso_vals, iso) : _get_cubeindex(iso_vals, iso)
+        cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        points = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi,zi) .* s .+ orig,
-                  VertType(xi-1,yi,zi) .* s .+ orig)
+        points = (VertType(xi-1,yi-1,zi-1) .* s .+ origin,
+                  VertType(xi,yi-1,zi-1) .* s .+ origin,
+                  VertType(xi,yi,zi-1) .* s .+ origin,
+                  VertType(xi-1,yi,zi-1) .* s .+ origin,
+                  VertType(xi-1,yi-1,zi) .* s .+ origin,
+                  VertType(xi,yi-1,zi) .* s .+ origin,
+                  VertType(xi,yi,zi) .* s .+ origin,
+                  VertType(xi-1,yi,zi) .* s .+ origin)
 
         # Find the vertices where the surface intersects the cube
-        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
-        reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     end
-    MT(vts,fcs)
+    vts,fcs
 end
 
 
-function marching_cubes(f::Function,
-                        bounds::HyperRectangle,
-                        ::Type{VertType}, ::Type{FaceType},
-                        samples::NTuple{3,Int}=(256,256,256),
-                        iso=0.0,
-                        MT::Type{M}=SimpleMesh{Point{3,Float64},Face{3,Int}},
-                        eps=0.00001, reduceverts=true, insidepositive=Val(false)) where {M<:AbstractMesh, VertType, FaceType}
-
-    FT = eltype(VertType)
+function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
+                    origin=SVector{3, Float64}(-1,-1,-1), widths=SVector{3, Float64}(2,2,2), samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
 
     nx, ny, nz = samples[1], samples[2], samples[3]
-    w = VertType(widths(bounds))
-    orig = VertType(origin(bounds))
 
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
-    s = VertType(w[1]/(nx-1), w[2]/(ny-1), w[3]/(nz-1))
+    s = VertType(widths[1]/(nx-1), widths[2]/(ny-1), widths[3]/(nz-1))
 
     # arrays for vertices and faces
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    reduceverts == true && sizehint!(vts, mt*mt*5)
-    reduceverts == false && sizehint!(vts, mt*mt*6)
+    method.reduceverts == true && sizehint!(vts, mt*mt*5)
+    method.reduceverts == false && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
-    iso_vals = Vector{FT}(undef,8)
+    iso_vals = Vector{eltype(VertType)}(undef,8)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-        points = (VertType(xi-1,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi-1,zi-1) .* s .+ orig,
-                  VertType(xi,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi,zi-1) .* s .+ orig,
-                  VertType(xi-1,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi-1,zi) .* s .+ orig,
-                  VertType(xi,yi,zi) .* s .+ orig,
-                  VertType(xi-1,yi,zi) .* s .+ orig)
+        points = (VertType(xi-1,yi-1,zi-1) .* s .+ origin,
+                  VertType(xi,yi-1,zi-1) .* s .+ origin,
+                  VertType(xi,yi,zi-1) .* s .+ origin,
+                  VertType(xi-1,yi,zi-1) .* s .+ origin,
+                  VertType(xi-1,yi-1,zi) .* s .+ origin,
+                  VertType(xi,yi-1,zi) .* s .+ origin,
+                  VertType(xi,yi,zi) .* s .+ origin,
+                  VertType(xi-1,yi,zi) .* s .+ origin)
 
         if zi == 1
             for i = 1:8
@@ -134,7 +112,7 @@ function marching_cubes(f::Function,
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
-        cubeindex = insidepositive === Val(true) ? _get_cubeindex_pos(iso_vals, iso) : _get_cubeindex(iso_vals, iso)
+        cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
@@ -142,14 +120,14 @@ function marching_cubes(f::Function,
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
         # The underlying space is non-linear so there will be error otherwise
-        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
-        reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
 
     end
-    MT(vts,fcs)
+    vts,fcs
 end
 
 
@@ -307,21 +285,4 @@ function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
     p = p1 + mu * (p2 - p1)
 
     return p
-end
-
-
-
-function (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::MarchingCubes)::MT where {MT <: AbstractMesh, ST, FT}
-    VertType, FaceType = _determine_types(MT, FT)
-    marching_cubes(df, VertType, FaceType, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
-end
-
-function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
-    VertType, FaceType = _determine_types(MT)
-    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
-end
-
-function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
-    VertType, FaceType = _determine_types(MT)
-    marching_cubes(f, h, VertType, FaceType, size, method.iso, MT, method.eps, method.reduceverts, Val(method.insidepositive))
 end

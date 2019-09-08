@@ -1,6 +1,6 @@
 module Meshing
 
-using GeometryTypes
+using StaticArrays
 
 abstract type AbstractMeshingAlgorithm end
 
@@ -10,7 +10,7 @@ include("marching_tetrahedra.jl")
 include("marching_cubes.jl")
 include("surface_nets.jl")
 
-export marching_cubes,
+export isosurface,
        MarchingCubes,
        MarchingTetrahedra,
        NaiveSurfaceNets

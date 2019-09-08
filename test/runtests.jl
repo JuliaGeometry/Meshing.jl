@@ -2,21 +2,13 @@ using Meshing
 using Test
 using GeometryTypes
 using ForwardDiff
-using Profile
+using StaticArrays
 using Statistics: mean
 using LinearAlgebra: dot, norm
 
+isosdf(sdf::SignedDistanceField, algo, args...) = isosurface(sdf.data, algo, origin=origin(sdf.bounds), widths=widths(sdf.bounds), args...)
 
 @testset "meshing" begin
-    @testset "type helpers" begin
-        dt = Meshing._determine_types
-        @test dt(HomogenousMesh) == (Point{3,Float64}, Face{3,Int64})
-        @test dt(GLNormalMesh) == (Point{3,Float32}, Face{3,OffsetInteger{-1,UInt32}})
-        @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
-        @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
-        @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})        
-        @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
-    end
 
     @testset "surface nets" begin
         sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
@@ -26,33 +18,25 @@ using LinearAlgebra: dot, norm
             (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
         end
 
-        snf_torus = HomogenousMesh(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), NaiveSurfaceNets()) do v
+        snf_torus = isosurface(NaiveSurfaceNets(), samples=(81,81,81), origin=Vec(-2,-2,-2.), widths=Vec(4,4,4.)) do v
             (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
         end
 
-        snf_sphere = HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (21,21,21), NaiveSurfaceNets()) do v
+        snf_sphere = isosurface(NaiveSurfaceNets(), samples=(21,21,21), origin=Vec(-1,-1,-1.), widths=Vec(2,2,2.)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        # test convience constructors
-        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
-            sqrt(sum(dot(v,v))) - 1 # sphere
-        end
-        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), size=(5,5,5)) do v
-            sqrt(sum(dot(v,v))) - 1 # sphere
-        end
+        sphere_vts, sphere_fcs = isosurface(sdf_sphere.data, NaiveSurfaceNets(), origin=origin(sdf_sphere.bounds), widths=widths(sdf_sphere.bounds))
+        torus_vts, torus_fcs = isosurface(sdf_torus.data, NaiveSurfaceNets(), origin=origin(sdf_torus.bounds), widths=widths(sdf_torus.bounds))
+        @test length(sphere_vts) == 1832
+        @test length(torus_vts) == 5532
+        @test length(sphere_fcs) == 1830
+        @test length(torus_fcs) == 5532
 
-        sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
-        torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
-        @test length(vertices(sphere)) == 1832
-        @test length(vertices(torus)) == 5532
-        @test length(faces(sphere)) == 1830
-        @test length(faces(torus)) == 5532
-
-        @test length(vertices(sphere)) == length(vertices(snf_sphere))
-        @test length(vertices(torus)) == length(vertices(snf_torus))
-        @test length(faces(sphere)) == length(faces(snf_sphere))
-        @test length(faces(torus)) == length(faces(snf_torus))
+        @test length(sphere_vts) == length(snf_sphere[1])
+        @test length(torus_vts) == length(snf_torus[1])
+        @test length(sphere_fcs) == length(snf_sphere[2])
+        @test length(torus_fcs) == length(snf_torus[2])
     end
 
 
@@ -72,22 +56,15 @@ using LinearAlgebra: dot, norm
         #
         lambda = N-2*sigma # isovalue
 
-        msh = HomogenousMesh(distance, MarchingTetrahedra(lambda))
+        msh = isosurface(distance, MarchingTetrahedra(lambda))
 
         s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        if "--profile" in ARGS
-            HomogenousMesh(s2, MarchingTetrahedra())
-            Profile.clear()
-            @profile HomogenousMesh(s2, MarchingTetrahedra())
-            #ProfileView.view()
-        end
-
-        msh = HomogenousMesh(s2, MarchingTetrahedra())
-        @test length(vertices(msh)) == 973
-        @test length(faces(msh)) == 1830
+        msh_vts, msh_fcs = isosurface(s2.data, MarchingTetrahedra(), origin=origin(s2.bounds), widths=widths(s2.bounds))
+        @test length(msh_vts) == 973
+        @test length(msh_fcs) == 1830
     end
 
     @testset "vertex interpolation" begin
@@ -105,37 +82,30 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, size=(21,21,21)) do v
+        mf_vts, mf_fcs = isosurface(algo, samples=(21,21,21), origin=Vec(-1,-1,-1.), widths=Vec(2,2,2.)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, size=(21,21,21)) do v
+        mf_pos_vts, mf_pos_fcs = isosurface(algo_pos, samples=(21,21,21), origin=Vec(-1,-1,-1.), widths=Vec(2,2,2.)) do v
             -sqrt(sum(dot(v,v))) + 1 # sphere positive inside
         end
 
-        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), size=(21,21,21)) do v
+        mfrv_vts, mfrv_fcs = isosurface(MarchingCubes(reduceverts=false), samples=(21,21,21), origin=Vec(-1,-1,-1.), widths=Vec(2,2,2.)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        # convience constructors
-        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes()) do v
-            sqrt(sum(dot(v,v))) - 1 # sphere
-        end
-        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), size=(5,6,7)) do v
-            sqrt(sum(dot(v,v))) - 1 # sphere
-        end
-
-        @test length(vertices(mfrv)) == 10968
-        m = SimpleMesh(sdf,algo)
-        m2 = SimpleMesh(sdf,algo)
-        @test length(vertices(m)) == 7320
-        @test length(faces(m)) == 3656
-        @test length(faces(mf)) == length(faces(mfrv))
-        @test length(faces(mf)) == length(faces(mf_pos))
-        @test m == m2
-        @test length(vertices(m)) == length(vertices(mf))
-        @test length(vertices(mf)) == length(vertices(mf_pos))
-        @test length(faces(m)) == length(faces(mf))
+        @test length(mfrv_vts) == 10968
+        m_vts, m_fcs = isosurface(sdf.data,algo,origin=origin(sdf.bounds), widths=widths(sdf.bounds))
+        m2_vts, m2_fcs = isosurface(sdf.data,algo,origin=origin(sdf.bounds), widths=widths(sdf.bounds))
+        @test length(m_vts) == 7320
+        @test length(m_fcs) == 3656
+        @test length(mf_fcs) == length(mfrv_fcs)
+        @test length(mf_fcs) == length(mf_pos_fcs)
+        @test m_vts == m2_vts
+        @test m_fcs == m2_fcs
+        @test length(m_vts) == length(mf_vts)
+        @test length(mf_vts) == length(mf_pos_vts)
+        @test length(m_fcs) == length(mf_fcs)
     end
 
     @testset "respect origin" begin
@@ -143,37 +113,37 @@ using LinearAlgebra: dot, norm
         #   a) respects the origin of the SDF
         #   b) is correctly spaced so that symmetric functions create symmetric meshes
         f = x -> norm(x)
-        bounds = HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2))
+        bounds = HyperRectangle(Vec(-1, -1, -1.), Vec(2, 2, 2.))
         resolution = 0.1
         sdf = SignedDistanceField(f, bounds, resolution)
 
         for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
-            mesh = @inferred GLNormalMesh(sdf, algorithm)
+            vts, _ = @inferred isosurface(sdf.data, algorithm, Vec{3,Float32})
             # should be centered on the origin
-            @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+            @test isapprox(mean(vts), SVector(0, 0, 0), atol=0.15*resolution)
             # and should be symmetric about the origin
-            @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
-            @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
+            @test maximum(vts) ≈ [0.5, 0.5, 0.5]
+            @test minimum(vts) ≈ [-0.5, -0.5, -0.5]
         end
 
         # Test functional Meshing
-        mesh = @inferred GLNormalMesh(f, HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2)), (21,21,21), MarchingCubes(0.5))
+        vts, _ = @inferred isosurface(f, MarchingCubes(0.5), Point{3, Float64}, samples=(21,21,21))
         # should be centered on the origin
-        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+        @test isapprox(mean(vts), SVector(0, 0, 0), atol=0.15*resolution)
         # and should be symmetric about the origin
-        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
-        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
+        @test maximum(vts) ≈ [0.5, 0.5, 0.5]
+        @test minimum(vts) ≈ [-0.5, -0.5, -0.5]
 
         # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
         # so a larger tolerance is needed for this one. In addition,
         # quad -> triangle conversion is not functioning correctly
         # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
-        mesh = @inferred GLNormalMesh(sdf, NaiveSurfaceNets(0.5))
+        vts, _ = @inferred isosurface(sdf.data, NaiveSurfaceNets(0.5), Point{3,Float64})
         # should be centered on the origin
-        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+        @test isapprox(mean(vts), SVector(0, 0, 0), atol=0.15*resolution)
         # and should be symmetric about the origin
-        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5] atol=0.2
-        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
+        @test maximum(vts) ≈ [0.5, 0.5, 0.5] atol=0.2
+        @test minimum(vts) ≈ [-0.5, -0.5, -0.5] atol=0.2
     end
 
     @testset "AbstractMeshingAlgorithm interface" begin
@@ -183,33 +153,33 @@ using LinearAlgebra: dot, norm
         sdf = SignedDistanceField(f, bounds, resolution)
 
         @testset "marching cubes" begin
-            @test_nowarn GLNormalMesh(sdf, MarchingCubes())
-            @inferred GLNormalMesh(sdf, MarchingCubes())
+            @test_nowarn isosurface(sdf.data, MarchingCubes())
+            @inferred isosurface(sdf.data, MarchingCubes())
         end
 
         @testset "marching tetrahedra" begin
-            @test_nowarn GLNormalMesh(sdf, MarchingTetrahedra())
-            @inferred GLNormalMesh(sdf, MarchingTetrahedra())
-            @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
-            @inferred GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
+            @test_nowarn isosurface(sdf.data, MarchingTetrahedra())
+            @inferred isosurface(sdf.data, MarchingTetrahedra())
+            @test_nowarn isosurface(sdf.data, MarchingTetrahedra(0.5))
+            @inferred isosurface(sdf.data, MarchingTetrahedra(0.5))
         end
         @testset "naive surface nets" begin
-            @test_nowarn GLNormalMesh(sdf, NaiveSurfaceNets())
-            @inferred GLNormalMesh(sdf, NaiveSurfaceNets())
+            @test_nowarn isosurface(sdf.data, NaiveSurfaceNets())
+            @inferred isosurface(sdf.data, NaiveSurfaceNets())
         end
     end
 
     @testset "mixed types" begin
         # https://github.com/JuliaGeometry/Meshing.jl/issues/9
         samples = randn(10, 10, 10)
-        m1 = HomogenousMesh(SignedDistanceField(
+        m1_vts, m1_fcs = isosdf(SignedDistanceField(
             HyperRectangle(Vec(0,0,0), Vec(1, 1, 1)),
-            samples), MarchingTetrahedra())
-        m2 = HomogenousMesh(SignedDistanceField(
+            samples), MarchingTetrahedra(), SVector{3,Float64})
+        m2_vts, m2_fcs = isosdf(SignedDistanceField(
             HyperRectangle(Vec(0,0,0), Vec(1, 1, 1)),
-            Float32.(samples)), MarchingTetrahedra())
-        @test all(isapprox.(vertices(m1), vertices(m2), rtol=1e-6))
-        @test all(faces(m1) == faces(m2))
+            Float32.(samples)), MarchingTetrahedra(), SVector{3,Float32})
+        @test all(isapprox.(m1_vts, m2_vts, rtol=1e-6))
+        @test all(m1_fcs == m2_fcs)
 
         @testset "forward diff" begin
             # Demonstrate that we can even take derivatives through the meshing algorithm
@@ -226,8 +196,8 @@ using LinearAlgebra: dot, norm
                 # of some quantity you might want to differentiate in a mesh,
                 # and has the benefit for testing of having a trivial expected
                 # solution.
-                mesh = HomogenousMesh(sdf, MarchingTetrahedra(isovalue))
-                mean(norm.(vertices(mesh)))
+                mesh_vts, mesh_fcs = isosurface(sdf.data, MarchingTetrahedra(isovalue), SVector{3,typeof(isovalue)})
+                mean(norm.(mesh_vts))
             end
 
             isoval = 0.85
@@ -241,9 +211,9 @@ using LinearAlgebra: dot, norm
             data = randn(5, 5, 5)
             iso = 0.2
             eps = 1e-4
-            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Point{3, Float16}, Face{3,UInt32}))
-            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Point{3, Float32}, Face{3,Int16}))
-            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Point{3, Float64}, Face{3,UInt}))
+            @inferred isosurface(data, MarchingTetrahedra(iso,eps), Point{3, Float16}, Face{3,UInt32})
+            @inferred isosurface(Float32.(data), MarchingTetrahedra(iso,eps), Point{3, Float32}, Face{3,UInt16})
+            @inferred isosurface(Float64.(data), MarchingTetrahedra(Float32(iso),Float64(eps)), Point{3, Float64}, Face{3,UInt})
         end
         @testset "Float16" begin
             sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
@@ -251,10 +221,10 @@ using LinearAlgebra: dot, norm
                                             0.1, Float16) do v
                 (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
             end
-            @test typeof(HomogenousMesh(sdf_torus,NaiveSurfaceNets())) ==
-                         PlainMesh{Float16,Face{4,Int}}
-            m2 = HomogenousMesh(sdf_torus,MarchingTetrahedra())
-            m3 = HomogenousMesh(sdf_torus,MarchingCubes())
+            @test typeof(isosurface(sdf_torus.data,NaiveSurfaceNets(), SVector{3,Float16})) ==
+                Tuple{Array{SVector{3,Float16},1},Array{SVector{4,Int},1}}
+            m2 = isosdf(sdf_torus,MarchingTetrahedra())
+            m3 = isosdf(sdf_torus,MarchingCubes())
         end
     end
 end
