@@ -5,7 +5,7 @@
 
 The file for this example can be found here: [http://www.slicer.org/slicerWiki/images/0/00/CTA-cardio.nrrd](http://www.slicer.org/slicerWiki/images/0/00/CTA-cardio.nrrd)
 
-```
+```julia
 
 using FileIO
 using NRRD
