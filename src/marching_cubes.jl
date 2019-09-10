@@ -3,8 +3,6 @@
 include("lut/mc.jl")
 
 """
-`marching_cubes(sdf::SignedDistanceField, [iso = 0.0,] [MT = HomogenousMesh{Point{3,Float64},Face{3,Int}}])`
-
 Construct a `HomogenousMesh` from a `SignedDistanceField` using the
 marching cubes algorithm. This method is faster than Marching Tetrahedra
 and generates fewer vertices and faces (about 1/4 as many).
@@ -23,8 +21,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    method.reduceverts == true && sizehint!(vts, mt*mt*5)
-    method.reduceverts == false && sizehint!(vts, mt*mt*6)
+    method.reduceverts && sizehint!(vts, mt*mt*5)
+    !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
     @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
@@ -79,8 +77,8 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    method.reduceverts == true && sizehint!(vts, mt*mt*5)
-    method.reduceverts == false && sizehint!(vts, mt*mt*6)
+    method.reduceverts && sizehint!(vts, mt*mt*5)
+    !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
     vertlist = Vector{VertType}(undef, 12)
     iso_vals = Vector{eltype(VertType)}(undef,8)
@@ -123,8 +121,8 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
-        method.reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        method.reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
 
     end
     vts,fcs

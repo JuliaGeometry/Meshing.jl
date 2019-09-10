@@ -1,10 +1,10 @@
 module Meshing
 
-using StaticArrays
-
-abstract type AbstractMeshingAlgorithm end
+using GeometryTypes,
+      StaticArrays
 
 include("algorithmtypes.jl")
+include("geometrytypes_api.jl")
 include("common.jl")
 include("marching_tetrahedra.jl")
 include("marching_cubes.jl")

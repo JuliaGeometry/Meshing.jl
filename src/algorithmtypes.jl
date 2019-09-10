@@ -1,5 +1,12 @@
 
 """
+    AbstractMeshingAlgorithm
+
+Abstract type to specify an algorithm for isosurface extraction.
+"""
+abstract type AbstractMeshingAlgorithm end
+
+"""
     MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(iso)
