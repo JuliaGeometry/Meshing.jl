@@ -38,7 +38,7 @@ function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::MarchingTetrahe
     vertex_eltype = promote_type(FT, typeof(method.iso), typeof(method.eps))
     VertType, FaceType = _determine_types(MT,vertex_eltype)
     h = sdf.bounds
-    vts, fcs = isosurface(sdf.data, method, VertType, FaceType, origin=origin(h), widths=widths(h))
+    vts, fcs = isosurface(sdf.data, method, VertType, FaceType, origin=VertType(origin(h)), widths=VertType(widths(h)))
     MT(vts, fcs)::MT
 end
 

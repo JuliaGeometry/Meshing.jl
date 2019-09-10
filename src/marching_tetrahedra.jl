@@ -30,7 +30,7 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 @inline function vertId(e, x, y, z, nx, ny)
-    dx, dy, dz = voxCrnrPos[voxEdgeCrnrs[e][1]]
+    dx, dy, dz = voxCrnrPosInt[voxEdgeCrnrs[e][1]]
     voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
 end
 
@@ -49,8 +49,8 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1= voxCrnrPos[ixs[1]]
-    c2 = voxCrnrPos[ixs[2]]
+    c1= voxCrnrPos(VertType)[ixs[1]]
+    c2 = voxCrnrPos(VertType)[ixs[2]]
 
     VertType(x,y,z) + c1 .* b + c2.* a
 end
@@ -170,7 +170,7 @@ The marchingTetrahedra function returns vertices on the (1-based) indices of the
 SDF's data, ignoring its actual bounds. This function adjusts the vertices in
 place so that they correspond to points within the SDF bounds.
 """
-function _correct_vertices!(vts, size, origin, widths, VertType)
+function _correct_vertices!(vts, size, origin, widths, ::Type{VertType}) where {VertType}
     s = widths ./ VertType(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
     for i in eachindex(vts)
         vts[i] = (vts[i] .- 1) .* s .+ origin  # subtract 1 to fix 1-indexing

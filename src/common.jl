@@ -41,8 +41,10 @@ end
 
 """
     _determine_types(meshtype, fieldtype=Float64, facelen=3)
+
 Given a subtype of AbstractMesh, determine the
 type of vertex/point and face to use for internal computations.
+
 Preference is given to the types specified by the Mesh call,
 and will default to the `FieldType` for `SignedDistanceField`,
 and Point{3,Float64}/Face{3,Int} for direct function sampling.
@@ -62,4 +64,4 @@ function _determine_types(meshtype, fieldtype=Float64, facelen=3)
         FaceType = Face{facelen, Int}
     end
     VertType, FaceType
-end 
+end
