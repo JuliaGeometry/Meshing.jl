@@ -212,9 +212,8 @@ Each face may share a reference to a vertex with another face.
                vertlist[vert_to_add[2]],
                vertlist[vert_to_add[3]])
 
-    for i = 4:12
+    for i = 4:count_ones(edge_table[cubeindex])
         elt = vert_to_add[i]
-        iszero(elt) && break
         push!(vts, vertlist[elt])
     end
     offsets = _mc_connectivity[cubeindex]
