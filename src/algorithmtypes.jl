@@ -3,6 +3,7 @@
     AbstractMeshingAlgorithm
 
 Abstract type to specify an algorithm for isosurface extraction.
+    (unexported)
 """
 abstract type AbstractMeshingAlgorithm end
 
