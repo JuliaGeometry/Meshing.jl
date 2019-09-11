@@ -38,7 +38,7 @@ using LinearAlgebra: dot, norm
         HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
-        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), size=(5,5,5)) do v
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), samples=(5,5,5)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -105,15 +105,15 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, size=(21,21,21)) do v
+        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, samples=(21,21,21)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, size=(21,21,21)) do v
+        mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, samples=(21,21,21)) do v
             -sqrt(sum(dot(v,v))) + 1 # sphere positive inside
         end
 
-        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), size=(21,21,21)) do v
+        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), samples=(21,21,21)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -121,7 +121,7 @@ using LinearAlgebra: dot, norm
         SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes()) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
-        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), size=(5,6,7)) do v
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), samples=(5,6,7)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 

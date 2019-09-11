@@ -10,15 +10,15 @@ function (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::MarchingCubes)::
     MT(vts, fcs)::MT
 end
 
-function (::Type{MT})(f::Function, h::HyperRectangle, size::NTuple{3,Int}, method::MarchingCubes)::MT where {MT <: AbstractMesh}
+function (::Type{MT})(f::Function, h::HyperRectangle, samples::NTuple{3,T}, method::MarchingCubes)::MT where {MT <: AbstractMesh, T <: Integer}
     VertType, FaceType = _determine_types(MT)
-    vts, fcs = isosurface(f, method, VertType, FaceType, origin=VertType(origin(h)), widths=VertType(widths(h)))
+    vts, fcs = isosurface(f, method, VertType, FaceType, samples=samples, origin=VertType(origin(h)), widths=VertType(widths(h)))
     MT(vts, fcs)::MT
 end
 
-function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; size::NTuple{3,Int}=(128,128,128))::MT where {MT <: AbstractMesh}
+function (::Type{MT})(f::Function, h::HyperRectangle, method::MarchingCubes; samples::NTuple{3,T}=(128,128,128))::MT where {MT <: AbstractMesh, T <: Integer}
     VertType, FaceType = _determine_types(MT)
-    vts, fcs = isosurface(f, method, VertType, FaceType, samples=size, origin=VertType(origin(h)), widths=VertType(widths(h)))
+    vts, fcs = isosurface(f, method, VertType, FaceType, samples=samples, origin=VertType(origin(h)), widths=VertType(widths(h)))
     MT(vts, fcs)::MT
 end
 
@@ -62,14 +62,14 @@ function (::Type{MT})(sdf::SignedDistanceField{3,ST,FT}, method::NaiveSurfaceNet
     MT(vts, fcs)::MT
 end
 
-function (::Type{MT})(f::Function, bounds::HyperRectangle, size::NTuple{3,Int}, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
+function (::Type{MT})(f::Function, bounds::HyperRectangle, samples::NTuple{3,Int}, method::NaiveSurfaceNets) where {MT <: AbstractMesh}
     VertType, FaceType = _determine_types(MT, Float64, 4)
-    vts, fcs = isosurface(f, method, VertType, FaceType, samples=size, origin=origin(bounds), widths=widths(bounds))
+    vts, fcs = isosurface(f, method, VertType, FaceType, samples=samples, origin=origin(bounds), widths=widths(bounds))
     MT(vts, fcs)::MT
 end
 
-function (::Type{MT})(f::Function, bounds::HyperRectangle, method::NaiveSurfaceNets;size::NTuple{3,Int}=(128,128,128)) where {MT <: AbstractMesh}
-    MT(f,bounds,size,method)
+function (::Type{MT})(f::Function, bounds::HyperRectangle, method::NaiveSurfaceNets;samples::NTuple{3,Int}=(128,128,128)) where {MT <: AbstractMesh}
+    MT(f,bounds,samples,method)
 end
 
 function (::Type{MT})(volume::AbstractArray{T, 3}, method::NaiveSurfaceNets; vargs...) where {MT <: AbstractMesh, T}
