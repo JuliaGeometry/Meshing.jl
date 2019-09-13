@@ -65,7 +65,7 @@ end
 
 
 function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2), samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2), samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
 
     nx, ny, nz = samples[1], samples[2], samples[3]
 

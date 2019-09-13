@@ -3,6 +3,8 @@ module Meshing
 using GeometryTypes,
       StaticArrays
 
+const _DEFAULT_SAMPLES = (24,24,24)
+
 include("algorithmtypes.jl")
 include("geometrytypes_api.jl")
 include("common.jl")
