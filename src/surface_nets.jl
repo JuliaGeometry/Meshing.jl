@@ -147,7 +147,7 @@ This takes the center of mass of the voxel as the vertex for each cube.
 function isosurface(f::Function, method::NaiveSurfaceNets,
                     ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
-                    samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
+                    samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
 
     scale = widths ./ VertType(samples .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
