@@ -256,10 +256,9 @@ using LinearAlgebra: dot, norm
                                             0.1, Float16) do v
                 (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
             end
-            @test typeof(HomogenousMesh(sdf_torus,NaiveSurfaceNets())) ==
-                         PlainMesh{Float16,Face{4,Int}}
-            m2 = HomogenousMesh(sdf_torus,MarchingTetrahedra())
-            m3 = HomogenousMesh(sdf_torus,MarchingCubes())
+            @test typeof(PlainMesh{Float16,Face{4,Int}}(sdf_torus,NaiveSurfaceNets(zero(Float16)))) == PlainMesh{Float16,Face{4,Int}}
+            @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingTetrahedra(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
+            @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingCubes(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
         end
     end
 end
