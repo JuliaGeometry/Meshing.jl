@@ -10,7 +10,7 @@ However it may generate non-manifold meshes, while Marching
 Tetrahedra guarentees a manifold mesh.
 """
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=SVector{3, Float64}(-1,-1,-1), widths=SVector{3, Float64}(2,2,2)) where {T, VertType, FaceType}
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
     nx, ny, nz = size(sdf)
 
     # we subtract one from the length along each axis because
@@ -65,7 +65,7 @@ end
 
 
 function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=SVector{3, Float64}(-1,-1,-1), widths=SVector{3, Float64}(2,2,2), samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2), samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
 
     nx, ny, nz = samples[1], samples[2], samples[3]
 
