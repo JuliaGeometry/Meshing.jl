@@ -16,7 +16,7 @@ Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
 function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
-                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2)) where {T, VertType, FaceType}
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
 
     scale = widths ./ VertType(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
@@ -146,7 +146,7 @@ This takes the center of mass of the voxel as the vertex for each cube.
 """
 function isosurface(f::Function, method::NaiveSurfaceNets,
                     ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
-                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2),
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
                     samples::NTuple{3,T}=(50,50,50)) where {T <: Integer, VertType, FaceType}
 
     scale = widths ./ VertType(samples .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells

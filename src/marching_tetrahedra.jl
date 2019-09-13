@@ -134,7 +134,7 @@ Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{3, Int};
-                    origin=SVector{3, Float32}(-1,-1,-1), widths=SVector{3, Float32}(2,2,2)) where {T, VertType, FaceType}
+                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
     vts        = Dict{Int, Int}()
     fcs        = FaceType[]
     vtsAry = VertType[]
