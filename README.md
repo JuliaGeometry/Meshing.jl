@@ -16,6 +16,7 @@ Algorithms included:
 * [Marching Cubes](https://en.wikipedia.org/wiki/Marching_cubes)
 * [Naive Surface Nets](https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/)
 
+![CTA Cardio Image](https://raw.githubusercontent.com/JuliaGeometry/Meshing.jl/master/docs/src/img/ctacardio.png)
 
 ## License
 
