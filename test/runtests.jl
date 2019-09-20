@@ -14,7 +14,7 @@ using LinearAlgebra: dot, norm
         @test dt(GLNormalMesh) == (Point{3,Float32}, Face{3,OffsetInteger{-1,UInt32}})
         @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
         @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
-        @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})        
+        @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})
         @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
     end
 
@@ -38,7 +38,7 @@ using LinearAlgebra: dot, norm
         HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
-        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), size=(5,5,5)) do v
+        HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), samples=(5,5,5)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -105,15 +105,15 @@ using LinearAlgebra: dot, norm
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, size=(21,21,21)) do v
+        mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, samples=(21,21,21)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
-        mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, size=(21,21,21)) do v
+        mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, samples=(21,21,21)) do v
             -sqrt(sum(dot(v,v))) + 1 # sphere positive inside
         end
 
-        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), size=(21,21,21)) do v
+        mfrv = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),MarchingCubes(reduceverts=false), samples=(21,21,21)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -121,7 +121,7 @@ using LinearAlgebra: dot, norm
         SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes()) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
-        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), size=(5,6,7)) do v
+        SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), MarchingCubes(), samples=(5,6,7)) do v
             sqrt(sum(dot(v,v))) - 1 # sphere
         end
 
@@ -241,9 +241,14 @@ using LinearAlgebra: dot, norm
             data = randn(5, 5, 5)
             iso = 0.2
             eps = 1e-4
-            @inferred(Meshing.marchingTetrahedra(data, iso, eps, Point{3, Float16}, Face{3,UInt32}))
-            @inferred(Meshing.marchingTetrahedra(Float32.(data), Float64(iso), Float16(eps), Point{3, Float32}, Face{3,Int16}))
-            @inferred(Meshing.marchingTetrahedra(Float64.(data), Float32(iso), Float64(eps), Point{3, Float64}, Face{3,UInt}))
+            for algo_ty in (MarchingTetrahedra, MarchingCubes)
+                algo1 = algo_ty(iso, eps)
+                algo2 = algo_ty(Float64(iso), Float16(eps))
+                algo3 = algo_ty(Float32(iso), Float64(eps))
+                @inferred(isosurface(data, algo1, Point{3, Float16}, Face{3,UInt32}))
+                @inferred(isosurface(Float32.(data), algo2, Point{3, Float32}, Face{3,Int16}))
+                @inferred(isosurface(Float64.(data), algo3, Point{3, Float64}, Face{3,UInt}))
+            end
         end
         @testset "Float16" begin
             sdf_torus = SignedDistanceField(HyperRectangle(Vec{3,Float16}(-2,-2,-2.),
@@ -251,10 +256,9 @@ using LinearAlgebra: dot, norm
                                             0.1, Float16) do v
                 (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
             end
-            @test typeof(HomogenousMesh(sdf_torus,NaiveSurfaceNets())) ==
-                         PlainMesh{Float16,Face{4,Int}}
-            m2 = HomogenousMesh(sdf_torus,MarchingTetrahedra())
-            m3 = HomogenousMesh(sdf_torus,MarchingCubes())
+            @test typeof(PlainMesh{Float16,Face{4,Int}}(sdf_torus,NaiveSurfaceNets(zero(Float16)))) == PlainMesh{Float16,Face{4,Int}}
+            @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingTetrahedra(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
+            @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingCubes(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
         end
     end
 end

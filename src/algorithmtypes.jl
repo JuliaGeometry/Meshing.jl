@@ -1,5 +1,13 @@
 
 """
+    AbstractMeshingAlgorithm
+
+Abstract type to specify an algorithm for isosurface extraction.
+    (unexported)
+"""
+abstract type AbstractMeshingAlgorithm end
+
+"""
     MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(iso)
@@ -80,3 +88,11 @@ end
 NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
 NaiveSurfaceNets(iso) = NaiveSurfaceNets(iso=iso)
 NaiveSurfaceNets(iso,eps) = NaiveSurfaceNets(iso=iso,eps=eps)
+
+
+#
+# Helper functions
+#
+
+default_face_length(::Union{MarchingCubes,MarchingTetrahedra}) = 3
+default_face_length(::NaiveSurfaceNets) = 4

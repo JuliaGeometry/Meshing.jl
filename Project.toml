@@ -2,6 +2,7 @@ name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
 
 [deps]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
 
 [extras]
