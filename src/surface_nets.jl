@@ -82,7 +82,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, T, Val(true), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(true), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -221,7 +221,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, eltype(VertType), Val(false), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(false), VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -269,8 +269,9 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     vertices, faces # faces are quads, indexed to vertices
 end
 
-@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, T, translate_pt, ::Type{VertType}) where {VertType}
+@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
     v = zero(VertType)
+    T = eltype(VertType)
     e_count = 0
 
     #For every edge of the cube...
@@ -287,8 +288,8 @@ end
         #Now find the point of intersection
         e0 = cube_edges[(i<<1)+1]       #Unpack vertices
         e1 = cube_edges[(i<<1)+2]
-        g0 = grid[e0]                 #Unpack grid values
-        g1 = grid[e1]
+        g0 = grid[e0+1]                 #Unpack grid values
+        g1 = grid[e1+1]
         t  = g0 - g1                 #Compute point of intersection
         if abs(t) > eps
             t = g0 / t
@@ -303,25 +304,25 @@ end
         a = e0 & 1
         b = e1 & 1
         (a != 0) && (xj += one(T))
-        (a != b) && (xj += (a != 0 ? - t : t))
+        (a != b) && (xj += (a != 0 ? -t : t))
         a = e0 & 2
         b = e1 & 2
         (a != 0) && (yj += one(T))
-        (a != b) && (yj += (a != 0 ? - t : t))
+        (a != b) && (yj += (a != 0 ? -t : t))
         a = e0 & 4
         b = e1 & 4
-        (a != 0) && (zj += 1.0)
-        (a != b) && (zj += (a != 0 ? - t : t))
+        (a != 0) && (zj += one(T))
+        (a != b) && (zj += (a != 0 ? -t : t))
         v += VertType(xj,yj,zj)
 
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
     s = 1.0 / e_count
-    if typeof(translate_pt) == Val{true}
-        @inbounds v = (VertType(xi,yi,zi)  + s .* v) .* scale + origin
+    if typeof(translate_pt) === Val{true}
+        v = (VertType(xi,yi,zi)  .+ s .* v) .* scale + origin
     else
-        @inbounds v = (VertType(xi,yi,zi) + s .* v)# * scale[i] + origin[i]
+        v = (VertType(xi,yi,zi) .+ s .* v)# * scale[i] + origin[i]
     end
 
     #Add vertex to buffer, store pointer to vertex index in buffer

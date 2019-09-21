@@ -3,7 +3,7 @@
     _get_cubeindex(iso_vals, iso)
 
 given `iso_vals` and iso, return an 8 bit value corresponding
-to each corner of a cube. In each bit position, 
+to each corner of a cube. In each bit position,
 0 indicates in the isosurface and 1 indicates outside the surface,
 where the sign convention indicates negative inside the surface
 """
@@ -23,7 +23,7 @@ end
     _get_cubeindex_pos(iso_vals, iso)
 
 given `iso_vals` and iso, return an 8 bit value corresponding
-to each corner of a cube. In each bit position, 
+to each corner of a cube. In each bit position,
 0 indicates in the isosurface and 1 indicates outside the surface,
 where the sign convention indicates positive inside the surface
 """
