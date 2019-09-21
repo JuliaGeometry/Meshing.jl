@@ -41,7 +41,7 @@ Users must construct an algorithm type and use it as an argument to a GeometryTy
 
 Below is a comparison of the algorithms:
 
-|                     | Face Type | Unique Vertices | Performance | Interpolation     |
+| Algorithm Type      | Face Type | Unique Vertices | Performance | Interpolation     |
 |---------------------|-----------|-----------------|-------------|-------------------|
 | Naive Surface Nets  | Quad      | Yes             | ~1x         | Voxel Edge Weight |
 | Marching Cubes      | Triangle  | No/Partial      | 1x          | Linear on Edge    |
