@@ -65,3 +65,23 @@ isosurface
 ## GeometryTypes
 
 Meshing extends the mesh types in GeometryTypes for convience and use with visualization tools such as Makie and MeshCat.
+Any instance of an `AbstractMesh` may be called with arguements as follows:
+
+```
+    (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::AbstractMeshingAlgorithm)::MT where {MT <: AbstractMesh, ST, FT}
+    (::Type{MT})(f::Function, h::HyperRectangle, samples::NTuple{3,T}, method::AbstractMeshingAlgorithm)::MT where {MT <: AbstractMesh, T <: Integer}
+    (::Type{MT})(f::Function, h::HyperRectangle, method::AbstractMeshingAlgorithm; samples::NTuple{3,T}=_DEFAULT_SAMPLES)::MT where {MT <: AbstractMesh, T <: Integer}
+    (::Type{MT})(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; vargs...) where {MT <: AbstractMesh, T}
+```
+
+With the GeometryTypes API, the bounding box is specified by a `HyperRectangle`.
+
+Some notes on VertType and FaceType. Since it is common to simply call `HomogenousMesh` or `GLNormalMesh`, we have added promotion and default type logic
+to the GeometryTypes API to improve type stability and therefore performance.
+Both the element type of the volume, element type of the `vertextype`, and type of `iso` in the `AbstractMeshingAlgorithm`
+are all promoted. This also allows the use of auto differentiation tools on the isosurface construction.
+
+If for example a `HomogenousMesh` is requested, the default types will be `Point{3,Float64}` and `Face{3,Int}`
+Similarly, a `GLNormalMesh` specifies `Point{3, Float32}` and `Face{3, OffsetInteger{-1,UIn32}}` so these these types will be used.
+
+See: `isosurface` for the generic API.

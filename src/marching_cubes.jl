@@ -132,8 +132,7 @@ end
 """
     _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
 
-Create triangles by only adding vertices within the voxel.
-Each face does not share a reference to a vertex with another face.
+Create triangles by adding every point within a triangle to the vertex vector.
 """
 @inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     fct = length(vts) + 3

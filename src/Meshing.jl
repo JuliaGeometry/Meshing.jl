@@ -3,6 +3,11 @@ module Meshing
 using GeometryTypes,
       StaticArrays
 
+"""
+    _DEFAULT_SAMPLES = (24,24,24)
+
+Global default sampling count for functions.
+"""
 const _DEFAULT_SAMPLES = (24,24,24)
 
 include("algorithmtypes.jl")

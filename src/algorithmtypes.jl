@@ -3,7 +3,10 @@
     AbstractMeshingAlgorithm
 
 Abstract type to specify an algorithm for isosurface extraction.
-    (unexported)
+See:
+- MarchingCubes
+- MarchingTetrahedra
+- NaiveSurfaceNets
 """
 abstract type AbstractMeshingAlgorithm end
 
@@ -15,12 +18,12 @@ abstract type AbstractMeshingAlgorithm end
 
 Specifies the use of the Marching Cubes algorithm for isosurface extraction.
 This algorithm provides a good balance between performance and vertex count.
-In contrast to the other algorithms, vertices may be repeated, so face counts
-may be large.
+In contrast to the other algorithms, vertices may be repeated, so mesh size
+may be large and it will be difficult to extract topological/connectivity information.
 
 - `iso` (default: 0.0) specifies the iso level to use for surface extraction.
 - `eps` (default: 1e-3) is the tolerence around a voxel corner to ensure manifold mesh generation.
-- `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with no performance penalty.
+- `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with slight performance improvement.
 - `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct MarchingCubes{T} <: AbstractMeshingAlgorithm
@@ -70,8 +73,8 @@ MarchingTetrahedra(iso,eps) = MarchingTetrahedra(iso=iso,eps=eps)
 
 Specifies the use of the Naive Surface Nets algorithm for isosurface extraction.
 This algorithm has a slight performance advantage in some cases over Marching Cubes.
-Each vertex is guaranteed to not be repeated, however the algorithm does not
-guarantee accuracy and generates quad faces.
+Each vertex is guaranteed to not be repeated (useful for topological analysis),
+however the algorithm does not guarantee accuracy and generates quad faces.
 
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
