@@ -16,16 +16,20 @@ using GeometryTypes
 # load the file as an AxisArray
 ctacardio = load("CTA-cardio.nrrd")
 
-# convert AxisArray to SignedDistanceField
-ctasdf = SignedDistanceField(HyperRectangle(Vec(0,0,0), Vec(10,10,10)),ctacardio.data)
-
-# use marching cubes with iso at 100
+# use marching cubes with isolevel at 100
 algo = MarchingCubes(iso=100, insidepositive=true)
+# use marching tetrahedra with iso at 100
+# algo = MarchingTetrahedra(iso=100, insidepositive=true)
+# use Naive Surface Nets with iso at 100
+# algo = NaiveSurfaceNets(iso=100, insidepositive=true)
 
 # generate the mesh using marching cubes
-mc = HomogenousMesh{Point{3,Float32},Face{3,Int}}(ctasdf, algo)
+mc = HomogenousMesh{Point{3,Float32},Face{3,Int}}(ctacardio, algo)
 
-# save the file as a PLY file
+# we can call isosurface to get a vector of points and vector of faces indexing to the points
+# vertices, faces = isosurface(ctacardio, also, Point{3,Float32}, Face{3,Int})
+
+# save the file as a PLY file (change extension to save as STL, OBJ, OFF)
 save("ctacardio_mc.ply", mc)
 ```
 
