@@ -47,6 +47,11 @@ Below is a comparison of the algorithms:
 | Marching Cubes      | Triangle  | No/Partial      | 1x          | Linear on Edge    |
 | Marching Tetrahedra | Triangle  | Yes             | 3x          | Linear on Edge    |
 
+Visual Comparison:
+From left: Marching Cubes, Naive Surface Nets, Marching Tetrahedra
+
+![comparison](./img/comparison.png)
+
 ```@docs
 MarchingCubes
 MarchingTetrahedra
