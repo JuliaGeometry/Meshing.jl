@@ -1,6 +1,6 @@
 name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
-version = "0.5.0"
+version = "0.5.1"
 
 [compat]
 julia = "1"
