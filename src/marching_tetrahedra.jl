@@ -31,7 +31,7 @@ for vertex sharing to be implemented properly.
 """
 @inline function vertId(e, x, y, z, nx, ny)
     dx, dy, dz = voxCrnrPosInt[voxEdgeCrnrs[e][1]]
-    voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
+    voxEdgeDir[e]+7*(x-0x01+dx+nx*(y-0x01+dy+ny*(z-0x01+dz)))
 end
 
 """
@@ -49,7 +49,7 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1= voxCrnrPos(VertType)[ixs[1]]
+    c1 = voxCrnrPos(VertType)[ixs[1]]
     c2 = voxCrnrPos(VertType)[ixs[2]]
 
     VertType(x,y,z) + c1 .* b + c2.* a
@@ -120,7 +120,7 @@ function procVox(vals, iso::Real, x, y, z, nx, ny,
                     getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps)))
 
         # bail if there are no more faces
-        e[4] == 0 && continue
+        iszero(e[4]) && continue
         push!(fcs, FaceType(
                     getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
                     getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
