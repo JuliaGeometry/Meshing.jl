@@ -24,7 +24,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
     method.reduceverts && sizehint!(vts, mt*mt*5)
     !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    vertlist = Vector{VertType}(undef, 12)
     @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
 
 
@@ -47,7 +46,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         # Find the vertices where the surface intersects the cube
-        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
+        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
         method.reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
@@ -73,7 +72,6 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     method.reduceverts && sizehint!(vts, mt*mt*5)
     !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    vertlist = Vector{VertType}(undef, 12)
     iso_vals = Vector{eltype(VertType)}(undef,8)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
@@ -105,7 +103,7 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
         # The underlying space is non-linear so there will be error otherwise
-        find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
+        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
         method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
@@ -198,59 +196,27 @@ Each face may share a reference to a vertex with another face.
 end
 
 """
-    find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
+    find_vertices_interp(points, iso_vals, cubeindex, iso, eps)
 
 Find the vertices where the surface intersects the cube
 """
-@inline function find_vertices_interp!(vertlist, points, iso_vals, cubeindex, iso, eps)
-    if !iszero(edge_table[cubeindex] & 0x001)
-        vertlist[1] =
-            vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x002)
-        vertlist[2] =
-            vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x004)
-        vertlist[3] =
-            vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x008)
-        vertlist[4] =
-            vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x010)
-        vertlist[5] =
-            vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x020)
-        vertlist[6] =
-            vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x040)
-        vertlist[7] =
-            vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x080)
-        vertlist[8] =
-            vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x100)
-        vertlist[9] =
-            vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x200)
-        vertlist[10] =
-            vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x400)
-        vertlist[11] =
-            vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps)
-    end
-    if !iszero(edge_table[cubeindex] & 0x800)
-        vertlist[12] =
-            vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps)
-    end
+@inline function find_vertices_interp(points, iso_vals, cubeindex, iso, eps)
+    VT = eltype(points)
+    zv = Ref{VT}()[]
+    # since we don't check any non-interpolated entries for zero elements (tri_table tells us the entries to check)
+    # we can use undefined references which is faster than zeroing out the memory
+    (!iszero(edge_table[cubeindex] & 0x001) ? vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x002) ? vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x004) ? vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x008) ? vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x010) ? vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x020) ? vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x040) ? vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x080) ? vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x100) ? vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x200) ? vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x400) ? vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps) : zv,
+     !iszero(edge_table[cubeindex] & 0x800) ? vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps) : zv)
 end
 
 """
