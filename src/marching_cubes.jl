@@ -49,8 +49,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
 
         # Create the triangle
-        method.reduceverts == true && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        method.reduceverts == false && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
     end
     vts,fcs
 end
