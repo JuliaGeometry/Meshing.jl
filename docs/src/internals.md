@@ -18,8 +18,9 @@ Meshing._determine_types
 ```@docs
 Meshing._mc_create_triangles!
 Meshing._mc_unique_triangles!
-Meshing.find_vertices_interp!
+Meshing.find_vertices_interp
 Meshing.vertex_interp
+Meshing.mc_vert_points
 ```
 
 

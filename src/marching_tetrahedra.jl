@@ -31,7 +31,7 @@ for vertex sharing to be implemented properly.
 """
 @inline function vertId(e, x, y, z, nx, ny)
     dx, dy, dz = voxCrnrPosInt[voxEdgeCrnrs[e][1]]
-    voxEdgeDir[e]+7*(x-1+dx+nx*(y-1+dy+ny*(z-1+dz)))
+    voxEdgeDir[e]+7*(x-0x01+dx+nx*(y-0x01+dy+ny*(z-0x01+dz)))
 end
 
 """
@@ -49,7 +49,7 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1= voxCrnrPos(VertType)[ixs[1]]
+    c1 = voxCrnrPos(VertType)[ixs[1]]
     c2 = voxCrnrPos(VertType)[ixs[2]]
 
     VertType(x,y,z) + c1 .* b + c2.* a
@@ -60,7 +60,7 @@ end
                 vals, iso::Real,
                 vts::Dict,
                 vtsAry::Vector,
-                eps::Real, ::Type{VertType}) where {VertType}
+                eps::Real)
 
 Gets the vertex ID, adding it to the vertex dictionary if not already
 present.
@@ -69,8 +69,9 @@ present.
                            vals, iso::Real,
                            vts::Dict,
                            vtsAry::Vector,
-                           eps::Real, ::Type{VertType}) where {VertType}
+                           eps::Real)
 
+    VertType = eltype(vtsAry)
     vId = vertId(e, x, y, z, nx, ny)
     # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
     if !haskey(vts, vId)
@@ -95,17 +96,16 @@ end
 """
     procVox(vals, iso::Real, x, y, z, nx, ny,
                     vts::Dict, vtsAry::Vector, fcs::Vector,
-                    eps::Real,
-                    ::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
+                    eps::Real)
 
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
 function procVox(vals, iso::Real, x, y, z, nx, ny,
                  vts::Dict, vtsAry::Vector, fcs::Vector,
-                 eps::Real,
-                 ::Type{VertType}, ::Type{FaceType}) where {VertType, FaceType}
-
+                 eps::Real)
+    VertType = eltype(vtsAry)
+    FaceType = eltype(fcs)
     # check each sub-tetrahedron in the voxel
     @inbounds for i = 1:6
         tIx = tetIx(i, vals, iso)
@@ -115,16 +115,16 @@ function procVox(vals, iso::Real, x, y, z, nx, ny,
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
+                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps)))
 
         # bail if there are no more faces
-        e[4] == 0 && continue
+        iszero(e[4]) && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType),
-                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps, VertType)))
+                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps)))
     end
 end
 
@@ -154,7 +154,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
                 sdf[i+1, j, k+1])
         cubeindex = _get_cubeindex(vals,method.iso)
         if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps, VertType, FaceType)
+            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps)
         end
     end
 
