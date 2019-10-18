@@ -24,33 +24,37 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
     method.reduceverts && sizehint!(vts, mt*mt*5)
     !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
+    spin_lock = Threads.SpinLock()
+    @inbounds Threads.@threads for zi = 1:nz-1
+         for yi = 1:ny-1, xi = 1:nx-1
 
+            iso_vals = (sdf[xi,yi,zi],
+                        sdf[xi+1,yi,zi],
+                        sdf[xi+1,yi+1,zi],
+                        sdf[xi,yi+1,zi],
+                        sdf[xi,yi,zi+1],
+                        sdf[xi+1,yi,zi+1],
+                        sdf[xi+1,yi+1,zi+1],
+                        sdf[xi,yi+1,zi+1])
 
-        iso_vals = (sdf[xi,yi,zi],
-                    sdf[xi+1,yi,zi],
-                    sdf[xi+1,yi+1,zi],
-                    sdf[xi,yi+1,zi],
-                    sdf[xi,yi,zi+1],
-                    sdf[xi+1,yi,zi+1],
-                    sdf[xi+1,yi+1,zi+1],
-                    sdf[xi,yi+1,zi+1])
+            #Determine the index into the edge table which
+            #tells us which vertices are inside of the surface
+            cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
-        #Determine the index into the edge table which
-        #tells us which vertices are inside of the surface
-        cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
+            # Cube is entirely in/out of the surface
+            (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+            points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
-        points = mc_vert_points(xi,yi,zi,s,origin,VertType)
+            # Find the vertices where the surface intersects the cube
+            vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
 
-        # Find the vertices where the surface intersects the cube
-        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
-
-        # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            # Create the triangle
+            lock(spin_lock)
+            method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            unlock(spin_lock)
+        end
     end
     vts,fcs
 end
@@ -72,43 +76,47 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     method.reduceverts && sizehint!(vts, mt*mt*5)
     !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    iso_vals = Vector{eltype(VertType)}(undef,8)
-    @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
+    spin_lock = Threads.SpinLock()
+    @inbounds Threads.@threads for xi = 1:nx-1
+        iso_vals = Vector{eltype(VertType)}(undef,8)
+        for yi = 1:ny-1, zi = 1:nz-1
 
 
-        points = mc_vert_points(xi,yi,zi,s,origin,VertType)
+            points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
-        if zi == 1
-            for i = 1:8
-                iso_vals[i] = f(points[i])
+            if zi == 1
+                for i = 1:8
+                    iso_vals[i] = f(points[i])
+                end
+            else
+                iso_vals[1] = iso_vals[5]
+                iso_vals[2] = iso_vals[6]
+                iso_vals[3] = iso_vals[7]
+                iso_vals[4] = iso_vals[8]
+                iso_vals[5] = f(points[5])
+                iso_vals[6] = f(points[6])
+                iso_vals[7] = f(points[7])
+                iso_vals[8] = f(points[8])
             end
-        else
-            iso_vals[1] = iso_vals[5]
-            iso_vals[2] = iso_vals[6]
-            iso_vals[3] = iso_vals[7]
-            iso_vals[4] = iso_vals[8]
-            iso_vals[5] = f(points[5])
-            iso_vals[6] = f(points[6])
-            iso_vals[7] = f(points[7])
-            iso_vals[8] = f(points[8])
+
+            #Determine the index into the edge table which
+            #tells us which vertices are inside of the surface
+            cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
+
+            # Cube is entirely in/out of the surface
+            (cubeindex == 0x00 || cubeindex == 0xff) && continue
+
+            # Find the vertices where the surface intersects the cube
+            # TODO this can use the underlying function to find the zero.
+            # The underlying space is non-linear so there will be error otherwise
+            vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
+
+            # Create the triangle
+            lock(spin_lock)
+            method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+            unlock(spin_lock)
         end
-
-        #Determine the index into the edge table which
-        #tells us which vertices are inside of the surface
-        cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
-
-        # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
-
-        # Find the vertices where the surface intersects the cube
-        # TODO this can use the underlying function to find the zero.
-        # The underlying space is non-linear so there will be error otherwise
-        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
-
-        # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-
     end
     vts,fcs
 end
