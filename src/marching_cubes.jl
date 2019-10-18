@@ -44,14 +44,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        points = (VertType(xi-1,yi-1,zi-1) .* s .+ origin,
-                  VertType(xi,yi-1,zi-1) .* s .+ origin,
-                  VertType(xi,yi,zi-1) .* s .+ origin,
-                  VertType(xi-1,yi,zi-1) .* s .+ origin,
-                  VertType(xi-1,yi-1,zi) .* s .+ origin,
-                  VertType(xi,yi-1,zi) .* s .+ origin,
-                  VertType(xi,yi,zi) .* s .+ origin,
-                  VertType(xi-1,yi,zi) .* s .+ origin)
+        points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         # Find the vertices where the surface intersects the cube
         find_vertices_interp!(vertlist, points, iso_vals, cubeindex, method.iso, method.eps)
@@ -84,14 +77,8 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     iso_vals = Vector{eltype(VertType)}(undef,8)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-        points = (VertType(xi-1,yi-1,zi-1) .* s .+ origin,
-                  VertType(xi,yi-1,zi-1) .* s .+ origin,
-                  VertType(xi,yi,zi-1) .* s .+ origin,
-                  VertType(xi-1,yi,zi-1) .* s .+ origin,
-                  VertType(xi-1,yi-1,zi) .* s .+ origin,
-                  VertType(xi,yi-1,zi) .* s .+ origin,
-                  VertType(xi,yi,zi) .* s .+ origin,
-                  VertType(xi-1,yi,zi) .* s .+ origin)
+
+        points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         if zi == 1
             for i = 1:8
@@ -281,4 +268,20 @@ function vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
     p = p1 + mu * (p2 - p1)
 
     return p
+end
+
+"""
+    mc_vert_points(xi,yi,zi, scale, origin, ::Type{VertType})
+
+Returns a tuple of 8 points corresponding to each corner of a cube
+"""
+@inline function mc_vert_points(xi,yi,zi, scale, origin, ::Type{VertType}) where VertType
+    (VertType(xi-1,yi-1,zi-1) .* scale .+ origin,
+     VertType(xi  ,yi-1,zi-1) .* scale .+ origin,
+     VertType(xi  ,yi  ,zi-1) .* scale .+ origin,
+     VertType(xi-1,yi  ,zi-1) .* scale .+ origin,
+     VertType(xi-1,yi-1,zi  ) .* scale .+ origin,
+     VertType(xi  ,yi-1,zi  ) .* scale .+ origin,
+     VertType(xi  ,yi  ,zi  ) .* scale .+ origin,
+     VertType(xi-1,yi  ,zi  ) .* scale .+ origin)
 end
