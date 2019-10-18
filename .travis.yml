@@ -21,6 +21,8 @@ notifications:
 branches:
   only: # Only kick off CI for master and potential merges to master from within PRs
     - master
+    - /^release-.*$/
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 matrix:
   allow_failures:
     - julia: nightly
