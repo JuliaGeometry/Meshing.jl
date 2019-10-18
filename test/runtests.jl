@@ -8,6 +8,18 @@ using LinearAlgebra: dot, norm
 
 
 @testset "meshing" begin
+    @testset "meshing algorithms" begin
+        for algo in (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
+            @test algo(5) == algo{Float64}(5.0, 0.001, true, false)
+            @test algo(0x00, 0x00) == algo{UInt8}(0x00, 0x00, true, false)
+            @test algo{UInt16}(5, 0x00) == algo{UInt16}(0x0005, 0x0000, true, false)
+            @test algo{Float32}(1) ==  algo{Float32}(1.0f0, 0.001f0, true, false)
+            @test algo{Float32}(1.0, 0x00) == algo{Float32}(1.0f0, 0.0f0, true, false)
+            @test algo{Float32}(iso=1, eps=0x00, insidepositive=true, reduceverts=false) ==
+                algo{Float32}(1.0f0, 0.0f0, false, true)
+        end
+    end
+
     @testset "type helpers" begin
         dt = Meshing._determine_types
         @test dt(HomogenousMesh) == (Point{3,Float64}, Face{3,Int64})

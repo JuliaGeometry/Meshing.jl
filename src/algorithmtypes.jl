@@ -10,6 +10,22 @@ See:
 """
 abstract type AbstractMeshingAlgorithm end
 
+function (::Type{MeshAlgo})(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2, MeshAlgo <: AbstractMeshingAlgorithm}
+    if isconcretetype(MeshAlgo)
+        return MeshAlgo(iso, eps, reduceverts, insidepositive)
+    else
+        return MeshAlgo{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
+    end
+end
+
+function (::Type{MeshAlgo})(iso) where MeshAlgo <: AbstractMeshingAlgorithm
+    MeshAlgo(iso=iso)
+end
+
+function (::Type{MeshAlgo})(iso,eps) where MeshAlgo <: AbstractMeshingAlgorithm
+    MeshAlgo(iso=iso,eps=eps)
+end
+
 """
     MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
@@ -32,11 +48,6 @@ struct MarchingCubes{T} <: AbstractMeshingAlgorithm
     reduceverts::Bool
     insidepositive::Bool
 end
-
-MarchingCubes(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = MarchingCubes{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
-MarchingCubes(iso) = MarchingCubes(iso=iso)
-MarchingCubes(iso,eps) = MarchingCubes(iso=iso,eps=eps)
-
 
 """
     MarchingTetrahedra(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
@@ -61,10 +72,6 @@ struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     insidepositive::Bool
 end
 
-MarchingTetrahedra(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = MarchingTetrahedra{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
-MarchingTetrahedra(iso) = MarchingTetrahedra(iso=iso)
-MarchingTetrahedra(iso,eps) = MarchingTetrahedra(iso=iso,eps=eps)
-
 """
     NaiveSurfaceNets(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
     NaiveSurfaceNets(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
@@ -87,11 +94,6 @@ struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
     reduceverts::Bool
     insidepositive::Bool
 end
-
-NaiveSurfaceNets(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2} = NaiveSurfaceNets{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
-NaiveSurfaceNets(iso) = NaiveSurfaceNets(iso=iso)
-NaiveSurfaceNets(iso,eps) = NaiveSurfaceNets(iso=iso,eps=eps)
-
 
 #
 # Helper functions
