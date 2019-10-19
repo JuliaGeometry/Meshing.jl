@@ -45,12 +45,21 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
 
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
-        # Find the vertices where the surface intersects the cube
-        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
-
         # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        if method.reduceverts
+            # we need to store the length of the vertex array vefore we add vertices
+            # so we can later apply offsets using the offset table
+            vertcount = length(vts)
+            push_vertices_interp!(vts, points, iso_vals, cubeindex, method.iso, method.eps)
+            _mc_unique_triangles!(vertcount, fcs, cubeindex, FaceType)
+        end
+        if !method.reduceverts
+            # Find the vertices where the surface intersects the cube
+            # TODO this can use the underlying function to find the zero.
+            # The underlying space is non-linear so there will be error otherwise
+            vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
+            _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        end
     end
     vts,fcs
 end
@@ -100,14 +109,21 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         # Cube is entirely in/out of the surface
         (cubeindex == 0x00 || cubeindex == 0xff) && continue
 
-        # Find the vertices where the surface intersects the cube
-        # TODO this can use the underlying function to find the zero.
-        # The underlying space is non-linear so there will be error otherwise
-        vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
-
         # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        if method.reduceverts
+            # we need to store the length of the vertex array vefore we add vertices
+            # so we can later apply offsets using the offset table
+            vertcount = length(vts)
+            push_vertices_interp!(vts, points, iso_vals, cubeindex, method.iso, method.eps)
+            _mc_unique_triangles!(vertcount, fcs, cubeindex, FaceType)
+        end
+        if !method.reduceverts
+            # Find the vertices where the surface intersects the cube
+            # TODO this can use the underlying function to find the zero.
+            # The underlying space is non-linear so there will be error otherwise
+            vertlist = find_vertices_interp(points, iso_vals, cubeindex, method.iso, method.eps)
+            _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+        end
 
     end
     vts,fcs
@@ -157,41 +173,30 @@ Create triangles by adding every point within a triangle to the vertex vector.
 end
 
 """
-    _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+    _mc_unique_triangles!(vertcount, vts, fcs, vertlist, cubeindex, FaceType)
 
 Create triangles by only adding unique vertices within the voxel.
 Each face may share a reference to a vertex with another face.
+`vertcount` is the length before we added points
 """
-@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
-    fct = length(vts)
+@inline function _mc_unique_triangles!(vertcount, fcs, cubeindex, FaceType)
 
-    vert_to_add = _mc_verts[cubeindex]
-    # Each vertex list will have atleast 3 elements so we can
-    # add them to the list immediately
-    push!(vts, vertlist[vert_to_add[1]],
-               vertlist[vert_to_add[2]],
-               vertlist[vert_to_add[3]])
-
-    for i = 4:count_ones(edge_table[cubeindex])
-        elt = vert_to_add[i]
-        push!(vts, vertlist[elt])
-    end
     offsets = _mc_connectivity[cubeindex]
 
     # There is atleast one face so we can push it immediately
-    push!(fcs, FaceType(fct+offsets[3], fct+offsets[2], fct+offsets[1]))
+    push!(fcs, FaceType(vertcount+offsets[3], vertcount+offsets[2], vertcount+offsets[1]))
 
     iszero(offsets[4]) && return
-    push!(fcs, FaceType(fct+offsets[6], fct+offsets[5], fct+offsets[4]))
+    push!(fcs, FaceType(vertcount+offsets[6], vertcount+offsets[5], vertcount+offsets[4]))
 
     iszero(offsets[7]) && return
-    push!(fcs, FaceType(fct+offsets[9], fct+offsets[8], fct+offsets[7]))
+    push!(fcs, FaceType(vertcount+offsets[9], vertcount+offsets[8], vertcount+offsets[7]))
 
     iszero(offsets[10]) && return
-    push!(fcs, FaceType(fct+offsets[12], fct+offsets[11], fct+offsets[10]))
+    push!(fcs, FaceType(vertcount+offsets[12], vertcount+offsets[11], vertcount+offsets[10]))
 
     iszero(offsets[13]) && return
-    push!(fcs, FaceType(fct+offsets[15], fct+offsets[14], fct+offsets[13]))
+    push!(fcs, FaceType(vertcount+offsets[15], vertcount+offsets[14], vertcount+offsets[13]))
 
 end
 
@@ -217,6 +222,27 @@ Find the vertices where the surface intersects the cube
      !iszero(edge_table[cubeindex] & 0x200) ? vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps) : zv,
      !iszero(edge_table[cubeindex] & 0x400) ? vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps) : zv,
      !iszero(edge_table[cubeindex] & 0x800) ? vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps) : zv)
+end
+
+"""
+    push_vertices_interp!(vts, points, iso_vals, cubeindex, iso, eps)
+
+Find the vertices where the surface intersects the cube.
+Pushes the vertices immediately, using offset tables to determine index for face.
+"""
+@inline function push_vertices_interp!(vts, points, iso_vals, cubeindex, iso, eps)
+    !iszero(edge_table[cubeindex] & 0x001) && push!(vts, vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps))
+    !iszero(edge_table[cubeindex] & 0x002) && push!(vts, vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps))
+    !iszero(edge_table[cubeindex] & 0x004) && push!(vts, vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps))
+    !iszero(edge_table[cubeindex] & 0x008) && push!(vts, vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps))
+    !iszero(edge_table[cubeindex] & 0x010) && push!(vts, vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps))
+    !iszero(edge_table[cubeindex] & 0x020) && push!(vts, vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps))
+    !iszero(edge_table[cubeindex] & 0x040) && push!(vts, vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps))
+    !iszero(edge_table[cubeindex] & 0x080) && push!(vts, vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps))
+    !iszero(edge_table[cubeindex] & 0x100) && push!(vts, vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps))
+    !iszero(edge_table[cubeindex] & 0x200) && push!(vts, vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps))
+    !iszero(edge_table[cubeindex] & 0x400) && push!(vts, vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps))
+    !iszero(edge_table[cubeindex] & 0x800) && push!(vts, vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps))
 end
 
 """
