@@ -184,20 +184,12 @@ Each face may share a reference to a vertex with another face.
     offsets = _mc_connectivity[cubeindex]
 
     # There is atleast one face so we can push it immediately
-    push!(fcs, FaceType(vertcount+offsets[3], vertcount+offsets[2], vertcount+offsets[1]))
+    push!(fcs, FaceType(vertcount+offsets[1], vertcount+offsets[2], vertcount+offsets[3]))
 
-    iszero(offsets[4]) && return
-    push!(fcs, FaceType(vertcount+offsets[6], vertcount+offsets[5], vertcount+offsets[4]))
-
-    iszero(offsets[7]) && return
-    push!(fcs, FaceType(vertcount+offsets[9], vertcount+offsets[8], vertcount+offsets[7]))
-
-    iszero(offsets[10]) && return
-    push!(fcs, FaceType(vertcount+offsets[12], vertcount+offsets[11], vertcount+offsets[10]))
-
-    iszero(offsets[13]) && return
-    push!(fcs, FaceType(vertcount+offsets[15], vertcount+offsets[14], vertcount+offsets[13]))
-
+    for i = (4,7,10,13)
+        iszero(offsets[i]) && return
+        push!(fcs, FaceType(vertcount+offsets[i], vertcount+offsets[i+1], vertcount+offsets[i+2]))
+    end
 end
 
 """
@@ -230,20 +222,17 @@ end
 Find the vertices where the surface intersects the cube.
 Pushes the vertices immediately, using offset tables to determine index for face.
 """
-@inline function push_vertices_interp!(vts, points, iso_vals, cubeindex, iso, eps)
-    !iszero(edge_table[cubeindex] & 0x001) && push!(vts, vertex_interp(iso,points[1],points[2],iso_vals[1],iso_vals[2], eps))
-    !iszero(edge_table[cubeindex] & 0x002) && push!(vts, vertex_interp(iso,points[2],points[3],iso_vals[2],iso_vals[3], eps))
-    !iszero(edge_table[cubeindex] & 0x004) && push!(vts, vertex_interp(iso,points[3],points[4],iso_vals[3],iso_vals[4], eps))
-    !iszero(edge_table[cubeindex] & 0x008) && push!(vts, vertex_interp(iso,points[4],points[1],iso_vals[4],iso_vals[1], eps))
-    !iszero(edge_table[cubeindex] & 0x010) && push!(vts, vertex_interp(iso,points[5],points[6],iso_vals[5],iso_vals[6], eps))
-    !iszero(edge_table[cubeindex] & 0x020) && push!(vts, vertex_interp(iso,points[6],points[7],iso_vals[6],iso_vals[7], eps))
-    !iszero(edge_table[cubeindex] & 0x040) && push!(vts, vertex_interp(iso,points[7],points[8],iso_vals[7],iso_vals[8], eps))
-    !iszero(edge_table[cubeindex] & 0x080) && push!(vts, vertex_interp(iso,points[8],points[5],iso_vals[8],iso_vals[5], eps))
-    !iszero(edge_table[cubeindex] & 0x100) && push!(vts, vertex_interp(iso,points[1],points[5],iso_vals[1],iso_vals[5], eps))
-    !iszero(edge_table[cubeindex] & 0x200) && push!(vts, vertex_interp(iso,points[2],points[6],iso_vals[2],iso_vals[6], eps))
-    !iszero(edge_table[cubeindex] & 0x400) && push!(vts, vertex_interp(iso,points[3],points[7],iso_vals[3],iso_vals[7], eps))
-    !iszero(edge_table[cubeindex] & 0x800) && push!(vts, vertex_interp(iso,points[4],points[8],iso_vals[4],iso_vals[8], eps))
+function push_vertices_interp!(vts, points, iso_vals, cubeindex, iso, eps)
+    et = edge_table[cubeindex]
+    for i = 1:12
+        p1 = _mc_edge_pairs[i][1]
+        p2 = _mc_edge_pairs[i][2]
+        !iszero(et & _mc_inds[i]) && push!(vts, vertex_interp(iso,points[p1],points[p2],iso_vals[p1],iso_vals[p2], eps))
+    end
 end
+
+const _mc_edge_pairs = ((1,2),(2,3),(3,4),(4,1),(5,6),(6,7),(7,8),(8,5),(1,5),(2,6),(3,7),(4,8))
+const _mc_inds = (0x001,0x002,0x004,0x008,0x010,0x020,0x040,0x080,0x100,0x200,0x400,0x800)
 
 """
     vertex_interp(iso, p1, p2, valp1, valp2, eps = 0.00001)
