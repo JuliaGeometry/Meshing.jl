@@ -72,7 +72,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 mask = _get_cubeindex(grid, 0)
 
                 # Check for early termination if cell does not intersect boundary
-                if mask == 0x00 || mask == 0xff
+                if _no_triangles(mask)
                     xi += 1
                     n += 1
                     m += 1
@@ -82,7 +82,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(true), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -210,7 +210,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 mask = _get_cubeindex(grid, 0)
 
                 # Check for early termination if cell does not intersect boundary
-                if mask == 0x00 || mask == 0xff
+                if _no_triangles(mask)
                     xi += 1
                     n += 1
                     m += 1
@@ -221,7 +221,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(false), VertType)
+                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 x = (xi,yi,zi)
@@ -278,9 +278,7 @@ end
     @inbounds for i=0:11
 
         #Use edge mask to check if it is crossed
-        if (edge_mask & (1<<i)) == 0
-            continue
-        end
+        iszero(edge_mask & (1<<i)) && continue
 
         #If it did, increment number of edge crossings
         e_count += 1
@@ -291,11 +289,10 @@ end
         g0 = grid[e0+1]                 #Unpack grid values
         g1 = grid[e1+1]
         t  = g0 - g1                 #Compute point of intersection
-        if abs(t) > eps
-            t = g0 / t
-        else
-            continue
-        end
+
+        abs(t) <= eps && continue
+
+        t = g0 / t
 
         #Interpolate vertices and add up intersections (this can be done without multiplying)
         # TODO lut table change may have made this incorrect
@@ -319,7 +316,7 @@ end
 
     #Now we just average the edge intersections and add them to coordinate
     s = 1.0 / e_count
-    if typeof(translate_pt) === Val{true}
+    if translate_pt
         v = (VertType(xi,yi,zi)  .+ s .* v) .* scale + origin
     else
         v = (VertType(xi,yi,zi) .+ s .* v)# * scale[i] + origin[i]
@@ -329,4 +326,3 @@ end
     buffer[m+1] = length(vertices)
     push!(vertices, v)
 end
-
