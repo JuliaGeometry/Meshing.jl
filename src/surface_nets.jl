@@ -52,11 +52,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
 
-        yi=0
-        @inbounds while yi<dims[2]-1
-
-            xi=0
-            @inbounds while xi < dims[1]-1
+        for yi = 0:dims[2]-2
+            for xi = 0:dims[1]-2
 
                 inds = (xi,yi,zi)
 
@@ -75,7 +72,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
-                    xi += 1
                     n += 1
                     m += 1
                     continue
@@ -89,11 +85,9 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
 
-                xi += 1
                 n += 1
                 m += 1
             end
-            yi += 1
             n += 1
             m += 2
         end
@@ -102,9 +96,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
-    #All done!  Return the result
 
-    vertices, faces # faces are quads, indexed to vertices
+    vertices, faces
 end
 
 """
@@ -117,7 +110,6 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                     samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
 
     scale = widths ./ VertType(samples .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-
 
     vertices = VertType[]
     faces = FaceType[]
@@ -142,11 +134,8 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (samples[1]+1) * (1 + buf_no * (samples[2]+1))
 
-        yi=0
-        @inbounds while yi<samples[2]-1
-
-            xi=0
-            @inbounds while xi < samples[1]-1
+        for yi = 0:samples[2]-2
+            for xi = 0:samples[1]-2
 
                 inds = (xi,yi,zi)
 
@@ -185,7 +174,6 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
-                    xi += 1
                     m += 1
                     continue
                 end
@@ -199,19 +187,16 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
 
-                xi += 1
                 m += 1
             end
-            yi += 1
             m += 2
         end
         zi += 1
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
-    #All done!  Return the result
 
-    vertices, faces # faces are quads, indexed to vertices
+    vertices, faces
 end
 
 @inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
