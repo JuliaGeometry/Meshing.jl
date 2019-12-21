@@ -42,7 +42,7 @@ end
 """
     no_triangles(cubeindex)
 
-Called after `_get_cubeindex`.
+Called after `_get_cubeindex`. Determines if a voxel index has triangles.
 """
 @inline function _no_triangles(cubeindex::UInt8)
     cubeindex == 0x00 || cubeindex == 0xff

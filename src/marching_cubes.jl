@@ -41,7 +41,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+        _no_triangles(cubeindex) && continue
 
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
@@ -76,7 +76,6 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     iso_vals = (zv,zv,zv,zv,zv,zv,zv,zv)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         if zi == 1
@@ -104,7 +103,7 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+        _no_triangles(cubeindex) && continue
 
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
@@ -182,6 +181,7 @@ Each face may share a reference to a vertex with another face.
         elt = vert_to_add[i]
         push!(vts, vertlist[elt])
     end
+
     offsets = _mc_connectivity[cubeindex]
 
     # There is atleast one face so we can push it immediately

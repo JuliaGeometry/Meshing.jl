@@ -58,6 +58,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
             xi=0
             @inbounds while xi < dims[1]-1
 
+                inds = (xi,yi,zi)
+
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
                 @inbounds grid = (data[n+1],
@@ -82,10 +84,9 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
-                x = (xi,yi,zi)
                 for i=0:2
                     #The first three entries of the edge_mask count the crossings along the edge
                     if (edge_mask & (1<<i)) == 0
@@ -97,7 +98,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                     iv = (i+2)%3
 
                     #If we are on a boundary, skip it
-                    if (x[iu+1] == 0 || x[iv+1] == 0)
+                    if (inds[iu+1] == 0 || inds[iv+1] == 0)
                         continue
                     end
 
@@ -181,6 +182,8 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
             xi=0
             @inbounds while xi < samples[1]-1
 
+                inds = (xi,yi,zi)
+
                 # Read in 8 field values around this vertex and store them in an array
                 points = (VertType(xi,yi,zi).* scale + origin,
                           VertType(xi+1,yi,zi).* scale + origin,
@@ -221,10 +224,9 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
-                x = (xi,yi,zi)
                 for i=0:2
                     #The first three entries of the edge_mask count the crossings along the edge
                     if (edge_mask & (1<<i)) == 0
@@ -236,7 +238,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                     iv = (i+2)%3
 
                     #If we are on a boundary, skip it
-                    if (x[iu+1] == 0 || x[iv+1] == 0)
+                    if (inds[iu+1] == 0 || inds[iv+1] == 0)
                         continue
                     end
 
@@ -269,7 +271,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     vertices, faces # faces are quads, indexed to vertices
 end
 
-@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
+@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
     v = zero(VertType)
     T = eltype(VertType)
     e_count = 0
@@ -310,9 +312,9 @@ end
     #Now we just average the edge intersections and add them to coordinate
     s = one(T) / e_count
     if translate_pt
-        v = (VertType(xi,yi,zi)  .+ s .* v) .* scale + origin
+        v = (VertType(inds...)  .+ s .* v) .* scale + origin
     else
-        v = (VertType(xi,yi,zi) .+ s .* v)# * scale[i] + origin[i]
+        v = (VertType(inds...) .+ s .* v)# * scale[i] + origin[i]
     end
 
     #Add vertex to buffer, store pointer to vertex index in buffer
