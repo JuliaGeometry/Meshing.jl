@@ -38,7 +38,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     sizehint!(faces,ceil(Int,maximum(dims)^2))
 
     n = 0
-    R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
+    R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)]) #TODO
     buf_no = 1
 
     buffer = fill(zero(Int),R[3]*2)
@@ -275,7 +275,7 @@ end
     e_count = 0
 
     #For every edge of the cube...
-    @inbounds for i=0:11
+    @inbounds for i=0x00:0x0b
 
         #Use edge mask to check if it is crossed
         iszero(edge_mask & (1<<i)) && continue
@@ -284,8 +284,8 @@ end
         e_count += 1
 
         #Now find the point of intersection
-        e0 = cube_edges[(i<<1)+1]       #Unpack vertices
-        e1 = cube_edges[(i<<1)+2]
+        e0 = cube_edges[(i<<0x01)+1]       #Unpack vertices
+        e1 = cube_edges[(i<<0x01)+2]
         g0 = grid[e0+1]                 #Unpack grid values
         g1 = grid[e1+1]
         t  = g0 - g1                 #Compute point of intersection
@@ -295,27 +295,20 @@ end
         t = g0 / t
 
         #Interpolate vertices and add up intersections (this can be done without multiplying)
-        # TODO lut table change may have made this incorrect
-        # in which case e0=e0-1 and e1=e1-1
-        xj, yj, zj = zero(T), zero(T), zero(T)
-        a = e0 & 1
-        b = e1 & 1
-        (a != 0) && (xj += one(T))
-        (a != b) && (xj += (a != 0 ? -t : t))
-        a = e0 & 2
-        b = e1 & 2
-        (a != 0) && (yj += one(T))
-        (a != b) && (yj += (a != 0 ? -t : t))
-        a = e0 & 4
-        b = e1 & 4
-        (a != 0) && (zj += one(T))
-        (a != b) && (zj += (a != 0 ? -t : t))
+        a1, a2, a3 = 0x01 & e0, 0x02 & e0, 0x04 & e0
+        b1, b2, b3 = 0x01 & e1, 0x02 & e1, 0x04 & e1
+        xj = T(!iszero(a1))
+        yj = T(!iszero(a2))
+        zj = T(!iszero(a3))
+        a1 != b1 && (xj += !iszero(a1) ? -t : t)
+        a2 != b2 && (yj += !iszero(a2) ? -t : t)
+        a3 != b3 && (zj += !iszero(a3) ? -t : t)
         v += VertType(xj,yj,zj)
 
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
-    s = 1.0 / e_count
+    s = one(T) / e_count
     if translate_pt
         v = (VertType(xi,yi,zi)  .+ s .* v) .* scale + origin
     else
