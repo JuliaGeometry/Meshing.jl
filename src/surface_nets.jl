@@ -217,7 +217,7 @@ end
     @inbounds for i=0x00:0x0b
 
         #Use edge mask to check if it is crossed
-        iszero(edge_mask & (1<<i)) && continue
+        iszero(edge_mask & (0x0001<<i)) && continue
 
         #If it did, increment number of edge crossings
         e_count += 1
@@ -260,13 +260,13 @@ end
 end
 
 function _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, ::Type{FaceType}) where {FaceType}
-    for i=0:2
+    for i = 0x00:0x02
         #The first three entries of the edge_mask count the crossings along the edge
-        iszero(edge_mask & (1<<i)) && continue
+        iszero(edge_mask & (0x0001<<i)) && continue
 
         # i = axes we are point along.  iu, iv = orthogonal axes
-        iu = (i+1)%3
-        iv = (i+2)%3
+        iu = (i+0x01)%0x03
+        iv = (i+0x02)%0x03
 
         #If we are on a boundary, skip it
         iszero(inds[iu+1]) || iszero(inds[iv+1]) && continue
