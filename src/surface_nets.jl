@@ -21,15 +21,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     scale = widths ./ VertType(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
     dims = size(sdf)
-    data = vec(sdf)
-
-    # Run iso surface additions here
-    # TODO
-    if method.iso != 0.0
-        for i = eachindex(data)
-            data[i] -= method.iso
-        end
-    end
 
     vertices = VertType[]
     faces = FaceType[]
@@ -38,7 +29,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     sizehint!(faces,ceil(Int,maximum(dims)^2))
 
     n = 0
-    R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)]) #TODO
+    R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
 
     buffer = fill(zero(Int),R[3]*2)
@@ -59,23 +50,25 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
 
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                @inbounds grid = (data[n+1],
-                                  data[n+2],
-                                  data[n+dims[1]+1],
-                                  data[n+dims[1]+2],
-                                  data[n+dims[1]*2+1 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*2+2 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*3+1 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*3+2 + dims[1]*(dims[2]-2)])
+                @inbounds grid = (sdf[xi+1,yi+1,zi+1],
+                                  sdf[xi+2,yi+1,zi+1],
+                                  sdf[xi+1,yi+2,zi+1],
+                                  sdf[xi+2,yi+2,zi+1],
+                                  sdf[xi+1,yi+1,zi+2],
+                                  sdf[xi+2,yi+1,zi+2],
+                                  sdf[xi+1,yi+2,zi+2],
+                                  sdf[xi+2,yi+2,zi+2])
 
-                mask = _get_cubeindex(grid, 0)
+                mask = _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
-                    n += 1
                     m += 1
                     continue
                 end
+
+                # iso level correction
+                grid = grid .- method.iso
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
@@ -85,14 +78,11 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
 
-                n += 1
                 m += 1
             end
-            n += 1
             m += 2
         end
         zi += 1
-        n+=dims[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
@@ -123,7 +113,9 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     buffer = fill(zero(Int),R[3]*2)
 
     zv = zero(eltype(VertType))
+    zvt = zero(VertType)
     grid = (zv,zv,zv,zv,zv,zv,zv,zv)
+    points = (zvt,zvt,zvt,zvt,zvt,zvt,zvt,zvt)
 
     #March over the voxel grid
     zi = 0
@@ -148,8 +140,6 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                               VertType(xi+1,yi,zi+1).* scale + origin,
                               VertType(xi,yi+1,zi+1).* scale + origin,
                               VertType(xi+1,yi+1,zi+1).* scale + origin)
-
-                if xi == 0
                     grid = (f(points[1]),
                             f(points[2]),
                             f(points[3]),
@@ -178,13 +168,16 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = _get_cubeindex(grid, 0)
+                mask = _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
                     m += 1
                     continue
                 end
+
+                # iso level correction
+                grid = grid .- method.iso
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
