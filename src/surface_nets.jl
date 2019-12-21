@@ -139,15 +139,15 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
 
                 inds = (xi,yi,zi)
 
-                # Read in 8 field values around this vertex and store them in an array
-                points = (VertType(xi,yi,zi).* scale + origin,
-                          VertType(xi+1,yi,zi).* scale + origin,
-                          VertType(xi,yi+1,zi).* scale + origin,
-                          VertType(xi+1,yi+1,zi).* scale + origin,
-                          VertType(xi,yi,zi+1).* scale + origin,
-                          VertType(xi+1,yi,zi+1).* scale + origin,
-                          VertType(xi,yi+1,zi+1).* scale + origin,
-                          VertType(xi+1,yi+1,zi+1).* scale + origin)
+                if xi == 0
+                    points = (VertType(xi,yi,zi).* scale + origin,
+                              VertType(xi+1,yi,zi).* scale + origin,
+                              VertType(xi,yi+1,zi).* scale + origin,
+                              VertType(xi+1,yi+1,zi).* scale + origin,
+                              VertType(xi,yi,zi+1).* scale + origin,
+                              VertType(xi+1,yi,zi+1).* scale + origin,
+                              VertType(xi,yi+1,zi+1).* scale + origin,
+                              VertType(xi+1,yi+1,zi+1).* scale + origin)
 
                 if xi == 0
                     grid = (f(points[1]),
@@ -159,6 +159,14 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                             f(points[7]),
                             f(points[8]))
                 else
+                    points = (points[2],
+                              VertType(xi+1,yi,zi).* scale + origin,
+                              points[4],
+                              VertType(xi+1,yi+1,zi).* scale + origin,
+                              points[6],
+                              VertType(xi+1,yi,zi+1).* scale + origin,
+                              points[8],
+                              VertType(xi+1,yi+1,zi+1).* scale + origin)
                     grid = (grid[2],
                             f(points[2]),
                             grid[4],
