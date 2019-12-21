@@ -262,25 +262,21 @@ end
 function _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, ::Type{FaceType}) where {FaceType}
     for i=0:2
         #The first three entries of the edge_mask count the crossings along the edge
-        if (edge_mask & (1<<i)) == 0
-            continue
-        end
+        iszero(edge_mask & (1<<i)) && continue
 
         # i = axes we are point along.  iu, iv = orthogonal axes
         iu = (i+1)%3
         iv = (i+2)%3
 
         #If we are on a boundary, skip it
-        if (inds[iu+1] == 0 || inds[iv+1] == 0)
-            continue
-        end
+        iszero(inds[iu+1]) || iszero(inds[iv+1]) && continue
 
         #Otherwise, look up adjacent edges in buffer
         du = R[iu+1]
         dv = R[iv+1]
 
         #Remember to flip orientation depending on the sign of the corner.
-        if (mask & 0x01) != 0x00
+        if !iszero(mask & 0x01)
             if length(FaceType) == 4
                 push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1))
             elseif length(FaceType) == 3
