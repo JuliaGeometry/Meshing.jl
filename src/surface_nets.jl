@@ -130,7 +130,8 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
 
     buffer = fill(zero(Int),R[3]*2)
 
-    grid = Vector{eltype(VertType)}(undef,8)
+    zv = zero(eltype(VertType))
+    grid = (zv,zv,zv,zv,zv,zv,zv,zv)
 
     #March over the voxel grid
     zi = 0
@@ -160,18 +161,23 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                           VertType(xi+1,yi+1,zi+1).* scale + origin)
 
                 if xi == 0
-                    for i = 1:8
-                        grid[i] = f(points[i])
-                    end
+                    grid = (f(points[1]),
+                            f(points[2]),
+                            f(points[3]),
+                            f(points[4]),
+                            f(points[5]),
+                            f(points[6]),
+                            f(points[7]),
+                            f(points[8]))
                 else
-                    grid[1] = grid[2]
-                    grid[2] = f(points[2])
-                    grid[3] = grid[4]
-                    grid[4] = f(points[4])
-                    grid[5] = grid[6]
-                    grid[6] = f(points[6])
-                    grid[7] = grid[8]
-                    grid[8] = f(points[8])
+                    grid = (grid[2],
+                            f(points[2]),
+                            grid[4],
+                            f(points[4]),
+                            grid[6],
+                            f(points[6]),
+                            grid[8],
+                            f(points[8]))
                 end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
