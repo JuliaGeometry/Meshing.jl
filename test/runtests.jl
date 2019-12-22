@@ -150,6 +150,24 @@ using LinearAlgebra: dot, norm
         @test length(faces(m)) == length(faces(mf))
     end
 
+    @testset "sign flips" begin
+        algos = (MarchingCubes, ) #MarchingTetrahedra
+
+        for algo_type in algos
+            algo = algo_type()
+            algo_pos = algo_type(insidepositive=true)
+            mf = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo, samples=(21,21,21)) do v
+                sqrt(sum(dot(v,v))) - 1 # sphere
+            end
+
+            mf_pos = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)),algo_pos, samples=(21,21,21)) do v
+                -sqrt(sum(dot(v,v))) + 1 # sphere positive inside
+            end
+            @test mf.vertices == mf_pos.vertices
+            @test mf.faces == mf_pos.faces
+        end
+    end
+
     @testset "respect origin" begin
         # verify that when we construct a mesh, that mesh:
         #   a) respects the origin of the SDF

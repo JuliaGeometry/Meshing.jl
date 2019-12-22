@@ -155,7 +155,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
                 sdf[i+1,j+1,k+1],
                 sdf[i+1,j,  k+1])
 
-        cubeindex = _get_cubeindex(vals, method.iso)
+        cubeindex = method.insidepositive ? _get_cubeindex_pos(vals, method.iso) : _get_cubeindex(vals, method.iso)
 
         _no_triangles(cubeindex) && continue
 

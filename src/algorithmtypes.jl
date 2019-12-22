@@ -63,7 +63,7 @@ making this algorithm useful for topological analysis.
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` reserved for future use.
-- `insidepositive` reserved for future use.
+- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     iso::T
