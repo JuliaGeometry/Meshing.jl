@@ -72,13 +72,12 @@ present.
 
     VertType = eltype(vtsAry)
     vId = vertId(e, x, y, z, nx, ny)
-    # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
-    if !haskey(vts, vId)
-        v = vertPos(e, x, y, z, scale, origin, vals, iso, eps, VertType)
-        push!(vtsAry, v)
-        vts[vId] = length(vtsAry)
-    end
-    vts[vId]
+
+    haskey(vts, vId) && return vts[vId]
+
+    v = vertPos(e, x, y, z, scale, origin, vals, iso, eps, VertType)
+    push!(vtsAry, v)
+    vts[vId] = length(vtsAry)
 end
 
 """
@@ -134,8 +133,9 @@ an approximate isosurface by the method of marching tetrahedra.
 """
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{3, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
-    vts        = Dict{Int, Int}()
-    fcs        = FaceType[]
+
+    vts    = Dict{Int, Int}()
+    fcs    = FaceType[]
     vtsAry = VertType[]
     sizehint!(vts, div(length(sdf),8))
     sizehint!(vtsAry, div(length(sdf),8))
@@ -143,19 +143,23 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
     # process each voxel
     scale = widths ./ VertType(size(sdf) .- 1)
     nx::Int, ny::Int, nz::Int = size(sdf)
+
     @inbounds for k = 1:nz-1, j = 1:ny-1, i= 1:nx-1
-        vals = (sdf[i, j, k],
-                sdf[i, j+1, k],
-                sdf[i+1, j+1, k],
-                sdf[i+1, j, k],
-                sdf[i, j, k+1],
-                sdf[i, j+1, k+1],
-                sdf[i+1, j+1, k+1],
-                sdf[i+1, j, k+1])
-        cubeindex = _get_cubeindex(vals,method.iso)
-        if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex)
-        end
+
+        vals = (sdf[i,  j,  k  ],
+                sdf[i,  j+1,k  ],
+                sdf[i+1,j+1,k  ],
+                sdf[i+1,j,  k  ],
+                sdf[i,  j,  k+1],
+                sdf[i,  j+1,k+1],
+                sdf[i+1,j+1,k+1],
+                sdf[i+1,j,  k+1])
+
+        cubeindex = _get_cubeindex(vals, method.iso)
+
+        _no_triangles(cubeindex) && continue
+
+        procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex)
     end
 
     vtsAry,fcs
