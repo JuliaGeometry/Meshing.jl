@@ -39,7 +39,8 @@ occurs.
 eps represents the "bump" factor to keep vertices away from voxel
 corners (thereby preventing degeneracies).
 """
-@inline function vertPos(e, x, y, z, vals::NTuple{8,T}, iso::Real, eps::Real, ::Type{VertType}) where {T<:Real, VertType}
+@inline function vertPos(e, x, y, z, scale, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
+    T = eltype(vals)
 
     ixs     = voxEdgeCrnrs[e]
     srcVal  = vals[ixs[1]]
@@ -49,7 +50,7 @@ corners (thereby preventing degeneracies).
     c1 = voxCrnrPos(VertType)[ixs[1]]
     c2 = voxCrnrPos(VertType)[ixs[2]]
 
-    VertType(x,y,z) + c1 .* b + c2.* a
+    ((VertType(x,y,z) + c1 .* b + c2.* a) .- 1) .* scale .+ origin
 end
 
 """
@@ -64,6 +65,7 @@ present.
 """
 @inline function getVertId(e, x, y, z, nx, ny,
                            vals, iso::Real,
+                           scale, origin,
                            vts::Dict,
                            vtsAry::Vector,
                            eps::Real)
@@ -72,7 +74,7 @@ present.
     vId = vertId(e, x, y, z, nx, ny)
     # TODO we can probably immediately construct the vertex array here and use vert id to map to sequential ordering
     if !haskey(vts, vId)
-        v = vertPos(e, x, y, z, vals, iso, eps, VertType)
+        v = vertPos(e, x, y, z, scale, origin, vals, iso, eps, VertType)
         push!(vtsAry, v)
         vts[vId] = length(vtsAry)
     end
@@ -98,7 +100,7 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals, iso::Real, x, y, z, nx, ny,
+function procVox(vals, iso::Real, x, y, z, nx, ny, scale, origin,
                  vts::Dict, vtsAry::Vector, fcs::Vector,
                  eps::Real, cubeindex)
     VertType = eltype(vtsAry)
@@ -112,16 +114,16 @@ function procVox(vals, iso::Real, x, y, z, nx, ny,
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps)))
 
         # bail if there are no more faces
         iszero(e[4]) && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, vts, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
+                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps)))
     end
 end
 
@@ -139,6 +141,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
     sizehint!(vtsAry, div(length(sdf),8))
     sizehint!(fcs, div(length(sdf),4))
     # process each voxel
+    scale = widths ./ VertType(size(sdf) .- 1)
     nx::Int, ny::Int, nz::Int = size(sdf)
     @inbounds for k = 1:nz-1, j = 1:ny-1, i= 1:nx-1
         vals = (sdf[i, j, k],
@@ -151,25 +154,9 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
                 sdf[i+1, j, k+1])
         cubeindex = _get_cubeindex(vals,method.iso)
         if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps, cubeindex)
+            procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex)
         end
     end
 
-    _correct_vertices!(vtsAry, size(sdf), origin, widths, VertType)
-
     vtsAry,fcs
-end
-
-"""
-    _correct_vertices!(vts, size, origin, widths, VertType)
-
-The marchingTetrahedra function returns vertices on the (1-based) indices of the
-SDF's data, ignoring its actual bounds. This function adjusts the vertices in
-place so that they correspond to points within the SDF bounds.
-"""
-function _correct_vertices!(vts, size, origin, widths, ::Type{VertType}) where {VertType}
-    s = widths ./ VertType(size .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
-    for i in eachindex(vts)
-        vts[i] = (vts[i] .- 1) .* s .+ origin  # subtract 1 to fix 1-indexing
-    end
 end
