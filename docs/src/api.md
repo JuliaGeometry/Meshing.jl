@@ -33,9 +33,10 @@ Three meshing algorithms exist:
 * `MarchingTetrahedra()`
 * `NaiveSurfaceNets()`
 
-Each takes an optional `iso` and `eps` parameter, e.g. `MarchingCubes(0.0,1e-6)`.
+Each takes optional `iso`, `eps`, and `insidepositive` parameters, e.g. `MarchingCubes(iso=0.0,eps=1e-6,insidepositive=false)`.
 
 Here `iso` controls the offset for the boundary detection. By default this is set to 0. `eps` is the detection tolerance for a voxel edge intersection.
+`insidepositive` sets the sign convention for inside/outside the surface (default: false).
 
 Users must construct an algorithm type and use it as an argument to a GeometryTypes mesh call or `isosurface` call.
 

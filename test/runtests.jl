@@ -151,7 +151,7 @@ using LinearAlgebra: dot, norm
     end
 
     @testset "sign flips" begin
-        algos = (MarchingCubes, MarchingTetrahedra)
+        algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
 
         for algo_type in algos
             algo = algo_type()
