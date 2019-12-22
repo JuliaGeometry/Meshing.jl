@@ -74,11 +74,11 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     sizehint!(fcs, mt*mt*2)
     zv = zero(eltype(VertType))
     iso_vals = (zv,zv,zv,zv,zv,zv,zv,zv)
-    @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
+    @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
 
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
-        if zi == 1
+        if xi == 1
             iso_vals = (f(points[1]),
                         f(points[2]),
                         f(points[3]),
@@ -88,14 +88,14 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
                         f(points[7]),
                         f(points[8]))
         else
-            iso_vals = (iso_vals[5],
+            iso_vals = (iso_vals[2],
+                        f(points[2]),
+                        f(points[3]),
+                        iso_vals[3],
                         iso_vals[6],
-                        iso_vals[7],
-                        iso_vals[8],
-                        f(points[5]),
                         f(points[6]),
                         f(points[7]),
-                        f(points[8]))
+                        iso_vals[7])
         end
 
         #Determine the index into the edge table which
