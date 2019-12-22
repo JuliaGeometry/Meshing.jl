@@ -15,7 +15,7 @@ println("Benchmarking Meshing.jl...")
 #
 
 algos_sdf = [MarchingCubes(), MarchingTetrahedra(), NaiveSurfaceNets()]
-algos_fn = [MarchingCubes(), NaiveSurfaceNets()]
+algos_fn = [MarchingCubes(), MarchingTetrahedra(), NaiveSurfaceNets()]
 
 #
 # Benchmark SDF constructon for SDF and Direct sample comparisons
