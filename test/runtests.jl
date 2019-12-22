@@ -5,6 +5,7 @@ using ForwardDiff
 using Statistics: mean
 using LinearAlgebra: dot, norm
 
+algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
 
 @testset "meshing algorithms" begin
     for algo in (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
@@ -142,8 +143,6 @@ end
 end
 
 @testset "sign flips" begin
-    algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
-
     for algo_type in algos
         algo = algo_type()
         algo_pos = algo_type(insidepositive=true)
@@ -160,7 +159,6 @@ end
 end
 
 @testset "function/array" begin
-    algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
 
     sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
         (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
@@ -171,7 +169,7 @@ end
     for algo in algos
         @testset "$algo" begin
             sdf_m = HomogenousMesh(sdf_torus, algo())
-            fn_m = HomogenousMesh(fn_torus, HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), algo())
+            fn_m = HomogenousMesh(fn_torus, HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), size(sdf_torus), algo())
             @test sdf_m.vertices == fn_m.vertices
             @test sdf_m.faces == fn_m.faces
         end
@@ -189,21 +187,23 @@ end
     sdf = SignedDistanceField(f, bounds, resolution)
 
     for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
-        mesh = @inferred GLNormalMesh(sdf, algorithm)
-        # should be centered on the origin
-        @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
-        # and should be symmetric about the origin
-        @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
-        @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
-    end
+        @testset "$(typeof(algorithm))" begin
+            mesh = @inferred GLNormalMesh(sdf, algorithm)
+            # should be centered on the origin
+            @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+            # and should be symmetric about the origin
+            @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
+            @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
 
-    # Test functional Meshing
-    mesh = @inferred GLNormalMesh(f, HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2)), (21,21,21), MarchingCubes(0.5))
-    # should be centered on the origin
-    @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
-    # and should be symmetric about the origin
-    @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
-    @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
+            # Test functional Meshing
+            fmesh = @inferred GLNormalMesh(f, bounds, size(sdf), algorithm)
+            # should be centered on the origin
+            @test mean(vertices(fmesh)) ≈ [0, 0, 0] atol=0.15*resolution
+            # and should be symmetric about the origin
+            @test maximum(vertices(fmesh)) ≈ [0.5, 0.5, 0.5]
+            @test minimum(vertices(fmesh)) ≈ [-0.5, -0.5, -0.5]
+        end
+    end
 
     # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
     # so a larger tolerance is needed for this one. In addition,
@@ -223,20 +223,13 @@ end
     resolution = 0.1
     sdf = SignedDistanceField(f, bounds, resolution)
 
-    @testset "marching cubes" begin
-        @test_nowarn GLNormalMesh(sdf, MarchingCubes())
-        @inferred GLNormalMesh(sdf, MarchingCubes())
-    end
-
-    @testset "marching tetrahedra" begin
-        @test_nowarn GLNormalMesh(sdf, MarchingTetrahedra())
-        @inferred GLNormalMesh(sdf, MarchingTetrahedra())
-        @test_nowarn GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
-        @inferred GLNormalMesh(sdf.data, MarchingTetrahedra(0.5))
-    end
-    @testset "naive surface nets" begin
-        @test_nowarn GLNormalMesh(sdf, NaiveSurfaceNets())
-        @inferred GLNormalMesh(sdf, NaiveSurfaceNets())
+    for algo in algos
+        @testset "$algo" begin
+            @test_nowarn GLNormalMesh(sdf, algo())
+            @inferred GLNormalMesh(sdf, algo())
+            @test_nowarn GLNormalMesh(sdf.data, algo(0.5))
+            @inferred GLNormalMesh(sdf.data, algo(0.5))
+        end
     end
 end
 
