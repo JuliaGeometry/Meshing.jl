@@ -136,17 +136,17 @@ end
         sqrt(sum(dot(v,v))) - 1 # sphere
     end
 
-    # @test length(vertices(mfrv)) == 10968
-    # m = SimpleMesh(sdf,algo)
-    # m2 = SimpleMesh(sdf,algo)
-    # @test length(vertices(m)) == 7320
-    # @test length(faces(m)) == 3656
-    # @test length(faces(mf)) == length(faces(mfrv))
-    # @test length(faces(mf)) == length(faces(mf_pos))
-    # @test m == m2
-    # @test length(vertices(m)) == length(vertices(mf))
-    # @test length(vertices(mf)) == length(vertices(mf_pos))
-    # @test length(faces(m)) == length(faces(mf))
+    @test length(vertices(mfrv)) == 10968
+    m = SimpleMesh(sdf,algo)
+    m2 = SimpleMesh(sdf,algo)
+    @test length(vertices(m)) == 7320
+    @test length(faces(m)) == 3656
+    @test length(faces(mf)) == length(faces(mfrv))
+    @test length(faces(mf)) == length(faces(mf_pos))
+    @test m == m2
+    @test length(vertices(m)) == length(vertices(mf))
+    @test length(vertices(mf)) == length(vertices(mf_pos))
+    @test length(faces(m)) == length(faces(mf))
 end
 
 @testset "sign flips" begin

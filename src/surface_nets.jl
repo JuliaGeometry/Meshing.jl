@@ -73,7 +73,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
@@ -183,7 +183,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
@@ -200,7 +200,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     vertices, faces
 end
 
-@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
+@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, ::Type{VertType}) where {VertType}
     v = zero(VertType)
     T = eltype(VertType)
     e_count = 0
@@ -240,11 +240,7 @@ end
 
     #Now we just average the edge intersections and add them to coordinate
     s = one(T) / e_count
-    if translate_pt
-        v = (VertType(inds...)  .+ s .* v) .* scale + origin
-    else
-        v = (VertType(inds...) .+ s .* v)# * scale[i] + origin[i]
-    end
+    v = (VertType(inds...)  .+ s .* v) .* scale + origin
 
     #Add vertex to buffer, store pointer to vertex index in buffer
     buffer[m+1] = length(vertices)
