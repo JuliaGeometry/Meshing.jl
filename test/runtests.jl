@@ -205,6 +205,7 @@ end
         end
     end
 
+    #TODO: SurfaceNets functional variant is bugged
     # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
     # so a larger tolerance is needed for this one. In addition,
     # quad -> triangle conversion is not functioning correctly
@@ -251,22 +252,27 @@ end
         bounds = HyperRectangle(Vec(-1, -1, -1), Vec(2, 2, 2))
         resolution = 0.1
         sdf = SignedDistanceField(f, bounds, resolution)
+        for algo in (MarchingCubes, MarchingTetrahedra)
+            @testset "$algo" begin
+                let
+                    function surface_distance_from_origin(isovalue)
+                        # Compute the mean distance of each vertex in the isosurface
+                        # mesh from the origin. This should return a value equal to the
+                        # isovalue and should have a derivative of 1.0 w.r.t. the
+                        # isovalue. This function is just meant to serve as an example
+                        # of some quantity you might want to differentiate in a mesh,
+                        # and has the benefit for testing of having a trivial expected
+                        # solution.
+                        mesh = HomogenousMesh(sdf, algo(isovalue))
+                        mean(norm.(vertices(mesh)))
+                    end
 
-        function surface_distance_from_origin(isovalue)
-            # Compute the mean distance of each vertex in the isosurface
-            # mesh from the origin. This should return a value equal to the
-            # isovalue and should have a derivative of 1.0 w.r.t. the
-            # isovalue. This function is just meant to serve as an example
-            # of some quantity you might want to differentiate in a mesh,
-            # and has the benefit for testing of having a trivial expected
-            # solution.
-            mesh = HomogenousMesh(sdf, MarchingTetrahedra(isovalue))
-            mean(norm.(vertices(mesh)))
+                    isoval = 0.85
+                    @test surface_distance_from_origin(isoval) ≈ isoval atol=1e-2
+                    @test ForwardDiff.derivative(surface_distance_from_origin, isoval) ≈ 1 atol=1e-2
+                end
+            end
         end
-
-        isoval = 0.85
-        @test surface_distance_from_origin(isoval) ≈ isoval atol=1e-2
-        @test ForwardDiff.derivative(surface_distance_from_origin, isoval) ≈ 1 atol=1e-2
     end
 
     @testset "type stability" begin
