@@ -2,7 +2,6 @@ using Meshing
 using Test
 using GeometryTypes
 using ForwardDiff
-using Profile
 using Statistics: mean
 using LinearAlgebra: dot, norm
 
@@ -87,13 +86,6 @@ end
 
     s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
         sqrt(sum(dot(v,v))) - 1 # sphere
-    end
-
-    if "--profile" in ARGS
-        HomogenousMesh(s2, MarchingTetrahedra())
-        Profile.clear()
-        @profile HomogenousMesh(s2, MarchingTetrahedra())
-        #ProfileView.view()
     end
 
     msh = HomogenousMesh(s2, MarchingTetrahedra())
