@@ -4,19 +4,16 @@
 include("lut/mt.jl")
 
 """
-    tetIx(tIx, vals, iso::Real)
+    tetIx(tIx, cubeindex)
 
 Determines which case in the triangle table we are dealing with
 """
-@inline function tetIx(tIx, vals, iso::Real)
-    v1 = vals[subTets[tIx][1]]
-    v2 = vals[subTets[tIx][2]]
-    v3 = vals[subTets[tIx][3]]
-    v4 = vals[subTets[tIx][4]]
-    ix = v1 < iso ? 0x01 : 0x00
-    (v2 < iso) && (ix |= 0x02)
-    (v3 < iso) && (ix |= 0x04)
-    (v4 < iso) && (ix |= 0x08)
+@inline function tetIx(tIx, cubeindex)
+    @inbounds v1 = subTetsMask[tIx][1]
+    @inbounds v2 = subTetsMask[tIx][2]
+    ix = 0x01 & cubeindex | (0x40 & cubeindex) >> 0x03
+    !iszero(v1 & cubeindex) && (ix |= 0x02)
+    !iszero(v2 & cubeindex) && (ix |= 0x04)
     ix
 end
 
@@ -103,12 +100,12 @@ containers as necessary.
 """
 function procVox(vals, iso::Real, x, y, z, nx, ny,
                  vts::Dict, vtsAry::Vector, fcs::Vector,
-                 eps::Real)
+                 eps::Real, cubeindex)
     VertType = eltype(vtsAry)
     FaceType = eltype(fcs)
     # check each sub-tetrahedron in the voxel
     @inbounds for i = 1:6
-        tIx = tetIx(i, vals, iso)
+        tIx = tetIx(i, cubeindex)
         (tIx == 0x00 || tIx == 0x0f) && continue
 
         e = tetTri[tIx]
@@ -154,7 +151,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
                 sdf[i+1, j, k+1])
         cubeindex = _get_cubeindex(vals,method.iso)
         if cubeindex != 0x00 && cubeindex != 0xff
-            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps)
+            procVox(vals, method.iso, i, j, k, nx, ny, vts, vtsAry, fcs, method.eps, cubeindex)
         end
     end
 
@@ -176,4 +173,3 @@ function _correct_vertices!(vts, size, origin, widths, ::Type{VertType}) where {
         vts[i] = (vts[i] .- 1) .* s .+ origin  # subtract 1 to fix 1-indexing
     end
 end
-
