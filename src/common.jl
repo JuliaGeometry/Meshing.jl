@@ -40,6 +40,15 @@ where the sign convention indicates positive inside the surface
 end
 
 """
+    no_triangles(cubeindex)
+
+Called after `_get_cubeindex`. Determines if a voxel index has triangles.
+"""
+@inline function _no_triangles(cubeindex::UInt8)
+    cubeindex == 0x00 || cubeindex == 0xff
+end
+
+"""
     _determine_types(meshtype, fieldtype=Float64, facelen=3)
 
 Given a subtype of AbstractMesh, determine the

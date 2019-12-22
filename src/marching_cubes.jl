@@ -41,7 +41,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+        _no_triangles(cubeindex) && continue
 
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
@@ -72,25 +72,30 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     method.reduceverts && sizehint!(vts, mt*mt*5)
     !method.reduceverts && sizehint!(vts, mt*mt*6)
     sizehint!(fcs, mt*mt*2)
-    iso_vals = Vector{eltype(VertType)}(undef,8)
+    zv = zero(eltype(VertType))
+    iso_vals = (zv,zv,zv,zv,zv,zv,zv,zv)
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
-
 
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         if zi == 1
-            for i = 1:8
-                iso_vals[i] = f(points[i])
-            end
+            iso_vals = (f(points[1]),
+                        f(points[2]),
+                        f(points[3]),
+                        f(points[4]),
+                        f(points[5]),
+                        f(points[6]),
+                        f(points[7]),
+                        f(points[8]))
         else
-            iso_vals[1] = iso_vals[5]
-            iso_vals[2] = iso_vals[6]
-            iso_vals[3] = iso_vals[7]
-            iso_vals[4] = iso_vals[8]
-            iso_vals[5] = f(points[5])
-            iso_vals[6] = f(points[6])
-            iso_vals[7] = f(points[7])
-            iso_vals[8] = f(points[8])
+            iso_vals = (iso_vals[5],
+                        iso_vals[6],
+                        iso_vals[7],
+                        iso_vals[8],
+                        f(points[5]),
+                        f(points[6]),
+                        f(points[7]),
+                        f(points[8]))
         end
 
         #Determine the index into the edge table which
@@ -98,7 +103,7 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
 
         # Cube is entirely in/out of the surface
-        (cubeindex == 0x00 || cubeindex == 0xff) && continue
+        _no_triangles(cubeindex) && continue
 
         # Find the vertices where the surface intersects the cube
         # TODO this can use the underlying function to find the zero.
@@ -119,7 +124,7 @@ end
 
 Create triangles by adding every point within a triangle to the vertex vector.
 """
-@inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+@inline function _mc_create_triangles!(vts, fcs, vertlist, cubeindex, ::Type{FaceType}) where {FaceType}
     fct = length(vts) + 3
 
     push!(vts, vertlist[tri_table[cubeindex][1]],
@@ -162,7 +167,7 @@ end
 Create triangles by only adding unique vertices within the voxel.
 Each face may share a reference to a vertex with another face.
 """
-@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, FaceType)
+@inline function _mc_unique_triangles!(vts, fcs, vertlist, cubeindex, ::Type{FaceType}) where {FaceType}
     fct = length(vts)
 
     vert_to_add = _mc_verts[cubeindex]
@@ -176,6 +181,7 @@ Each face may share a reference to a vertex with another face.
         elt = vert_to_add[i]
         push!(vts, vertlist[elt])
     end
+
     offsets = _mc_connectivity[cubeindex]
 
     # There is atleast one face so we can push it immediately

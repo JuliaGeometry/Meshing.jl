@@ -21,15 +21,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     scale = widths ./ VertType(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
     dims = size(sdf)
-    data = vec(sdf)
-
-    # Run iso surface additions here
-    # TODO
-    if method.iso != 0.0
-        for i = eachindex(data)
-            data[i] -= method.iso
-        end
-    end
 
     vertices = VertType[]
     faces = FaceType[]
@@ -52,92 +43,51 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (dims[1]+1) * (1 + buf_no * (dims[2]+1))
 
-        yi=0
-        @inbounds while yi<dims[2]-1
+        for yi = 0:dims[2]-2
+            for xi = 0:dims[1]-2
 
-            xi=0
-            @inbounds while xi < dims[1]-1
+                inds = (xi,yi,zi)
 
                 # Read in 8 field values around this vertex and store them in an array
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                @inbounds grid = (data[n+1],
-                                  data[n+2],
-                                  data[n+dims[1]+1],
-                                  data[n+dims[1]+2],
-                                  data[n+dims[1]*2+1 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*2+2 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*3+1 + dims[1]*(dims[2]-2)],
-                                  data[n+dims[1]*3+2 + dims[1]*(dims[2]-2)])
+                @inbounds grid = (sdf[xi+1,yi+1,zi+1],
+                                  sdf[xi+2,yi+1,zi+1],
+                                  sdf[xi+1,yi+2,zi+1],
+                                  sdf[xi+2,yi+2,zi+1],
+                                  sdf[xi+1,yi+1,zi+2],
+                                  sdf[xi+2,yi+1,zi+2],
+                                  sdf[xi+1,yi+2,zi+2],
+                                  sdf[xi+2,yi+2,zi+2])
 
-                mask = _get_cubeindex(grid, 0)
+                mask = method.insidepositive ? _get_cubeindex_pos(grid, method.iso) : _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
-                if mask == 0x00 || mask == 0xff
-                    xi += 1
-                    n += 1
+                if _no_triangles(mask)
                     m += 1
                     continue
                 end
 
+                # iso level correction
+                grid = grid .- method.iso
+
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(true), VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
-                x = (xi,yi,zi)
-                for i=0:2
-                    #The first three entries of the edge_mask count the crossings along the edge
-                    if (edge_mask & (1<<i)) == 0
-                        continue
-                    end
+                _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
 
-                    # i = axes we are point along.  iu, iv = orthogonal axes
-                    iu = (i+1)%3
-                    iv = (i+2)%3
-
-                    #If we are on a boundary, skip it
-                    if (x[iu+1] == 0 || x[iv+1] == 0)
-                        continue
-                    end
-
-                    #Otherwise, look up adjacent edges in buffer
-                    du = R[iu+1]
-                    dv = R[iv+1]
-
-                    #Remember to flip orientation depending on the sign of the corner.
-                    if (mask & 0x01) != 0x00
-                        if length(FaceType) == 4
-                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1))
-                        elseif length(FaceType) == 3
-                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1))
-                            push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-dv+1]+1, buffer[m+1]+1))
-                        end
-                    else
-                        if length(FaceType) == 4
-                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1))
-                        elseif length(FaceType) == 3
-                            push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1))
-                            push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-du+1]+1, buffer[m+1]+1))
-                        end
-                    end
-                end
-                xi += 1
-                n += 1
                 m += 1
             end
-            yi += 1
-            n += 1
             m += 2
         end
         zi += 1
-        n+=dims[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
-    #All done!  Return the result
 
-    vertices, faces # faces are quads, indexed to vertices
+    vertices, faces
 end
 
 """
@@ -151,20 +101,21 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
 
     scale = widths ./ VertType(samples .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
 
-
     vertices = VertType[]
     faces = FaceType[]
 
     sizehint!(vertices,ceil(Int,maximum(samples)^2))
     sizehint!(faces,ceil(Int,maximum(samples)^2))
 
-    n = 0
     R = Array{Int}([1, (samples[1]+1), (samples[1]+1)*(samples[2]+1)])
     buf_no = 1
 
     buffer = fill(zero(Int),R[3]*2)
 
-    grid = Vector{eltype(VertType)}(undef,8)
+    zv = zero(eltype(VertType))
+    zvt = zero(VertType)
+    grid = (zv,zv,zv,zv,zv,zv,zv,zv)
+    points = (zvt,zvt,zvt,zvt,zvt,zvt,zvt,zvt)
 
     #March over the voxel grid
     zi = 0
@@ -175,154 +126,124 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
         # The contents of the buffer will be the indices of the vertices on the previous x/y slice of the volume
         m = 1 + (samples[1]+1) * (1 + buf_no * (samples[2]+1))
 
-        yi=0
-        @inbounds while yi<samples[2]-1
+        for yi = 0:samples[2]-2
+            for xi = 0:samples[1]-2
 
-            xi=0
-            @inbounds while xi < samples[1]-1
-
-                # Read in 8 field values around this vertex and store them in an array
-                points = (VertType(xi,yi,zi).* scale + origin,
-                          VertType(xi+1,yi,zi).* scale + origin,
-                          VertType(xi,yi+1,zi).* scale + origin,
-                          VertType(xi+1,yi+1,zi).* scale + origin,
-                          VertType(xi,yi,zi+1).* scale + origin,
-                          VertType(xi+1,yi,zi+1).* scale + origin,
-                          VertType(xi,yi+1,zi+1).* scale + origin,
-                          VertType(xi+1,yi+1,zi+1).* scale + origin)
+                inds = (xi,yi,zi)
 
                 if xi == 0
-                    for i = 1:8
-                        grid[i] = f(points[i])
-                    end
+                    points = (VertType(xi,yi,zi).* scale + origin,
+                              VertType(xi+1,yi,zi).* scale + origin,
+                              VertType(xi,yi+1,zi).* scale + origin,
+                              VertType(xi+1,yi+1,zi).* scale + origin,
+                              VertType(xi,yi,zi+1).* scale + origin,
+                              VertType(xi+1,yi,zi+1).* scale + origin,
+                              VertType(xi,yi+1,zi+1).* scale + origin,
+                              VertType(xi+1,yi+1,zi+1).* scale + origin)
+                    grid = (f(points[1]),
+                            f(points[2]),
+                            f(points[3]),
+                            f(points[4]),
+                            f(points[5]),
+                            f(points[6]),
+                            f(points[7]),
+                            f(points[8]))
                 else
-                    grid[1] = grid[2]
-                    grid[2] = f(points[2])
-                    grid[3] = grid[4]
-                    grid[4] = f(points[4])
-                    grid[5] = grid[6]
-                    grid[6] = f(points[6])
-                    grid[7] = grid[8]
-                    grid[8] = f(points[8])
+                    points = (points[2],
+                              VertType(xi+1,yi,zi).* scale + origin,
+                              points[4],
+                              VertType(xi+1,yi+1,zi).* scale + origin,
+                              points[6],
+                              VertType(xi+1,yi,zi+1).* scale + origin,
+                              points[8],
+                              VertType(xi+1,yi+1,zi+1).* scale + origin)
+                    grid = (grid[2],
+                            f(points[2]),
+                            grid[4],
+                            f(points[4]),
+                            grid[6],
+                            f(points[6]),
+                            grid[8],
+                            f(points[8]))
                 end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = _get_cubeindex(grid, 0)
+                mask = method.insidepositive ? _get_cubeindex_pos(grid, method.iso) : _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
-                if mask == 0x00 || mask == 0xff
-                    xi += 1
-                    n += 1
+                if _no_triangles(mask)
                     m += 1
                     continue
                 end
+
+                # iso level correction
+                grid = grid .- method.iso
 
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, Val(false), VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
-                x = (xi,yi,zi)
-                for i=0:2
-                    #The first three entries of the edge_mask count the crossings along the edge
-                    if (edge_mask & (1<<i)) == 0
-                        continue
-                    end
+                _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
 
-                    # i = axes we are point along.  iu, iv = orthogonal axes
-                    iu = (i+1)%3
-                    iv = (i+2)%3
-
-                    #If we are on a boundary, skip it
-                    if (x[iu+1] == 0 || x[iv+1] == 0)
-                        continue
-                    end
-
-                    #Otherwise, look up adjacent edges in buffer
-                    du = R[iu+1]
-                    dv = R[iv+1]
-
-                    #Remember to flip orientation depending on the sign of the corner.
-                    if (mask & 0x01) != 0x00
-                        push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1));
-                    else
-                        push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1));
-                    end
-                end
-                xi += 1
-                n += 1
                 m += 1
             end
-            yi += 1
-            n += 1
             m += 2
         end
         zi += 1
-        n+=samples[1]
         buf_no = xor(buf_no,1)
         R[3]=-R[3]
     end
-    #All done!  Return the result
 
-    vertices, faces # faces are quads, indexed to vertices
+    vertices, faces
 end
 
-@inline function _sn_add_verts!(xi, yi, zi, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
+@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
     v = zero(VertType)
     T = eltype(VertType)
     e_count = 0
 
     #For every edge of the cube...
-    @inbounds for i=0:11
+    @inbounds for i=0x00:0x0b
 
         #Use edge mask to check if it is crossed
-        if (edge_mask & (1<<i)) == 0
-            continue
-        end
+        iszero(edge_mask & (0x0001<<i)) && continue
 
         #If it did, increment number of edge crossings
         e_count += 1
 
         #Now find the point of intersection
-        e0 = cube_edges[(i<<1)+1]       #Unpack vertices
-        e1 = cube_edges[(i<<1)+2]
+        e0 = cube_edges[(i<<0x01)+1]       #Unpack vertices
+        e1 = cube_edges[(i<<0x01)+2]
         g0 = grid[e0+1]                 #Unpack grid values
         g1 = grid[e1+1]
         t  = g0 - g1                 #Compute point of intersection
-        if abs(t) > eps
-            t = g0 / t
-        else
-            continue
-        end
+
+        abs(t) <= eps && continue
+
+        t = g0 / t
 
         #Interpolate vertices and add up intersections (this can be done without multiplying)
-        # TODO lut table change may have made this incorrect
-        # in which case e0=e0-1 and e1=e1-1
-        xj, yj, zj = zero(T), zero(T), zero(T)
-        a = e0 & 1
-        b = e1 & 1
-        (a != 0) && (xj += one(T))
-        (a != b) && (xj += (a != 0 ? -t : t))
-        a = e0 & 2
-        b = e1 & 2
-        (a != 0) && (yj += one(T))
-        (a != b) && (yj += (a != 0 ? -t : t))
-        a = e0 & 4
-        b = e1 & 4
-        (a != 0) && (zj += one(T))
-        (a != b) && (zj += (a != 0 ? -t : t))
+        a1, a2, a3 = 0x01 & e0, 0x02 & e0, 0x04 & e0
+        b1, b2, b3 = 0x01 & e1, 0x02 & e1, 0x04 & e1
+        xj = T(!iszero(a1))
+        yj = T(!iszero(a2))
+        zj = T(!iszero(a3))
+        a1 != b1 && (xj += !iszero(a1) ? -t : t)
+        a2 != b2 && (yj += !iszero(a2) ? -t : t)
+        a3 != b3 && (zj += !iszero(a3) ? -t : t)
         v += VertType(xj,yj,zj)
 
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
-    s = 1.0 / e_count
-    if typeof(translate_pt) === Val{true}
-        v = (VertType(xi,yi,zi)  .+ s .* v) .* scale + origin
+    s = one(T) / e_count
+    if translate_pt
+        v = (VertType(inds...)  .+ s .* v) .* scale + origin
     else
-        v = (VertType(xi,yi,zi) .+ s .* v)# * scale[i] + origin[i]
+        v = (VertType(inds...) .+ s .* v)# * scale[i] + origin[i]
     end
 
     #Add vertex to buffer, store pointer to vertex index in buffer
@@ -330,3 +251,37 @@ end
     push!(vertices, v)
 end
 
+function _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, ::Type{FaceType}) where {FaceType}
+    for i = 0x00:0x02
+        #The first three entries of the edge_mask count the crossings along the edge
+        iszero(edge_mask & (0x0001<<i)) && continue
+
+        # i = axes we are point along.  iu, iv = orthogonal axes
+        iu = (i+0x01)%0x03
+        iv = (i+0x02)%0x03
+
+        #If we are on a boundary, skip it
+        iszero(inds[iu+1]) || iszero(inds[iv+1]) && continue
+
+        #Otherwise, look up adjacent edges in buffer
+        du = R[iu+1]
+        dv = R[iv+1]
+
+        #Remember to flip orientation depending on the sign of the corner.
+        if !iszero(mask & 0x01)
+            if length(FaceType) == 4
+                push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1, buffer[m-dv+1]+1))
+            elseif length(FaceType) == 3
+                push!(faces,FaceType(buffer[m+1]+1, buffer[m-du+1]+1, buffer[m-du-dv+1]+1))
+                push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-dv+1]+1, buffer[m+1]+1))
+            end
+        else
+            if length(FaceType) == 4
+                push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1, buffer[m-du+1]+1))
+            elseif length(FaceType) == 3
+                push!(faces,FaceType(buffer[m+1]+1, buffer[m-dv+1]+1, buffer[m-du-dv+1]+1))
+                push!(faces,FaceType(buffer[m-du-dv+1]+1, buffer[m-du+1]+1, buffer[m+1]+1))
+            end
+        end
+    end
+end
