@@ -7,6 +7,7 @@ GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+GeometryTypes = "0.7"
 StaticArrays = "0.12"
 julia = "1"
 
