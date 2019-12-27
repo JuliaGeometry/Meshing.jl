@@ -159,6 +159,7 @@ end
 end
 
 @testset "function/array" begin
+    # verify that mesh contruction from array or function give the same results
 
     sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
         (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
@@ -186,36 +187,44 @@ end
     resolution = 0.1
     sdf = SignedDistanceField(f, bounds, resolution)
 
-    for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
-        @testset "$(typeof(algorithm))" begin
-            mesh = @inferred GLNormalMesh(sdf, algorithm)
-            # should be centered on the origin
-            @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
-            # and should be symmetric about the origin
-            @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
-            @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
-
-            # Test functional Meshing
+    for algorithm in (MarchingCubes(0.5),
+                      MarchingTetrahedra(0.5),
+                      MarchingCubes(iso=0.5,insidepositive=true),
+                      MarchingTetrahedra(iso=0.5,insidepositive=true))
+        @testset "$algorithm" begin
+            sdfmesh = @inferred GLNormalMesh(sdf, algorithm)
             fmesh = @inferred GLNormalMesh(f, bounds, size(sdf), algorithm)
-            # should be centered on the origin
-            @test mean(vertices(fmesh)) ≈ [0, 0, 0] atol=0.15*resolution
-            # and should be symmetric about the origin
-            @test maximum(vertices(fmesh)) ≈ [0.5, 0.5, 0.5]
-            @test minimum(vertices(fmesh)) ≈ [-0.5, -0.5, -0.5]
+
+            @test all(sdfmesh.vertices .≈ fmesh.vertices)
+            @test sdfmesh.faces == sdfmesh.faces
+
+            for mesh in (sdfmesh,fmesh)
+                # should be centered on the origin
+                @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+                # and should be symmetric about the origin
+                @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5]
+                @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5]
+            end
         end
     end
 
-    #TODO: SurfaceNets functional variant is bugged
-    # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
-    # so a larger tolerance is needed for this one. In addition,
-    # quad -> triangle conversion is not functioning correctly
-    # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
-    mesh = @inferred GLNormalMesh(sdf, NaiveSurfaceNets(0.5))
-    # should be centered on the origin
-    @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
-    # and should be symmetric about the origin
-    @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5] atol=0.2
-    @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
+    @testset "NaiveSurfaceNets" begin
+        #TODO: SurfaceNets functional variant is bugged
+        # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
+        # so a larger tolerance is needed for this one. In addition,
+        # quad -> triangle conversion is not functioning correctly
+        # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
+        fmesh = HomogenousMesh(sdf, NaiveSurfaceNets(0.5))
+        sdfmesh = HomogenousMesh(f, bounds, size(sdf), NaiveSurfaceNets(0.5))
+
+        for mesh in (sdfmesh,fmesh)
+            # should be centered on the origin
+            @test mean(vertices(mesh)) ≈ [0, 0, 0] atol=0.15*resolution
+            # and should be symmetric about the origin
+            @test maximum(vertices(mesh)) ≈ [0.5, 0.5, 0.5] atol=0.2
+            @test minimum(vertices(mesh)) ≈ [-0.5, -0.5, -0.5] atol=0.2
+        end
+    end
 end
 
 @testset "AbstractMeshingAlgorithm interface" begin
