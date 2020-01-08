@@ -68,16 +68,25 @@ present.
                            scale, origin,
                            vts::Dict,
                            vtsAry::Vector,
-                           eps::Real)
+                           eps::Real,
+                           reduceverts::Bool)
 
     VertType = eltype(vtsAry)
-    vId = vertId(e, x, y, z, nx, ny)
+    if reduceverts
+        vId = vertId(e, x, y, z, nx, ny)
+        haskey(vts, vId) && return vts[vId]
+    end
 
-    haskey(vts, vId) && return vts[vId]
-
+    # calculate vert position
     v = vertPos(e, x, y, z, scale, origin, vals, iso, eps, VertType)
     push!(vtsAry, v)
-    vts[vId] = length(vtsAry)
+
+    # if deduplicting, push to dict
+    if reduceverts
+        vts[vId] = length(vtsAry)
+    end
+
+    return length(vtsAry)
 end
 
 """
@@ -101,7 +110,7 @@ containers as necessary.
 """
 function procVox(vals, iso::Real, x, y, z, nx, ny, scale, origin,
                  vts::Dict, vtsAry::Vector, fcs::Vector,
-                 eps::Real, cubeindex)
+                 eps::Real, cubeindex, reduceverts)
     VertType = eltype(vtsAry)
     FaceType = eltype(fcs)
     # check each sub-tetrahedron in the voxel
@@ -113,16 +122,16 @@ function procVox(vals, iso::Real, x, y, z, nx, ny, scale, origin,
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
 
         # bail if there are no more faces
         iszero(e[4]) && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
     end
 end
 
@@ -159,7 +168,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
 
         _no_triangles(cubeindex) && continue
 
-        procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex)
+        procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex, method.reduceverts)
     end
 
     vtsAry,fcs
@@ -215,7 +224,7 @@ function isosurface(f::Function, method::MarchingTetrahedra,
 
         _no_triangles(cubeindex) && continue
 
-        procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex)
+        procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex, method.reduceverts)
     end
 
     vtsAry,fcs
