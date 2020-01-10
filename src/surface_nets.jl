@@ -15,7 +15,7 @@ include("lut/sn.jl")
 Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
-function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
+function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{4, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
 
     scale = widths ./ VertType(size(sdf) .- 1)  # subtract 1 because an SDF with N points per side has N-1 cells
@@ -73,7 +73,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                 #Sum up edge intersections
                 edge_mask = sn_edge_table[mask]
 
-                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, true, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
@@ -95,7 +95,7 @@ Generate a mesh using naive surface nets.
 This takes the center of mass of the voxel as the vertex for each cube.
 """
 function isosurface(f::Function, method::NaiveSurfaceNets,
-                    ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{4, Int};
+                    ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{4, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
                     samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
 
@@ -132,14 +132,14 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 inds = (xi,yi,zi)
 
                 if xi == 0
-                    points = (VertType(xi,yi,zi).* scale + origin,
-                              VertType(xi+1,yi,zi).* scale + origin,
-                              VertType(xi,yi+1,zi).* scale + origin,
-                              VertType(xi+1,yi+1,zi).* scale + origin,
-                              VertType(xi,yi,zi+1).* scale + origin,
-                              VertType(xi+1,yi,zi+1).* scale + origin,
-                              VertType(xi,yi+1,zi+1).* scale + origin,
-                              VertType(xi+1,yi+1,zi+1).* scale + origin)
+                    points = (VertType(xi,yi,zi).* scale .+ origin,
+                              VertType(xi+1,yi,zi).* scale .+ origin,
+                              VertType(xi,yi+1,zi).* scale .+ origin,
+                              VertType(xi+1,yi+1,zi).* scale .+ origin,
+                              VertType(xi,yi,zi+1).* scale .+ origin,
+                              VertType(xi+1,yi,zi+1).* scale .+ origin,
+                              VertType(xi,yi+1,zi+1).* scale .+ origin,
+                              VertType(xi+1,yi+1,zi+1).* scale .+ origin)
                     grid = (f(points[1]),
                             f(points[2]),
                             f(points[3]),
@@ -150,13 +150,13 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                             f(points[8]))
                 else
                     points = (points[2],
-                              VertType(xi+1,yi,zi).* scale + origin,
+                              VertType(xi+1,yi,zi).* scale .+ origin,
                               points[4],
-                              VertType(xi+1,yi+1,zi).* scale + origin,
+                              VertType(xi+1,yi+1,zi).* scale .+ origin,
                               points[6],
-                              VertType(xi+1,yi,zi+1).* scale + origin,
+                              VertType(xi+1,yi,zi+1).* scale .+ origin,
                               points[8],
-                              VertType(xi+1,yi+1,zi+1).* scale + origin)
+                              VertType(xi+1,yi+1,zi+1).* scale .+ origin)
                     grid = (grid[2],
                             f(points[2]),
                             grid[4],
@@ -183,7 +183,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 edge_mask = sn_edge_table[mask]
 
                 # add vertices
-                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, false, VertType)
+                _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, method.eps, VertType)
 
                 #Now we need to add faces together, to do this we just loop over 3 basis components
                 _sn_add_faces!(inds, faces, edge_mask, mask, buffer, m, R, FaceType)
@@ -200,7 +200,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     vertices, faces
 end
 
-@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, translate_pt, ::Type{VertType}) where {VertType}
+@inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, ::Type{VertType}) where {VertType}
     v = zero(VertType)
     T = eltype(VertType)
     e_count = 0
@@ -234,17 +234,13 @@ end
         a1 != b1 && (xj += !iszero(a1) ? -t : t)
         a2 != b2 && (yj += !iszero(a2) ? -t : t)
         a3 != b3 && (zj += !iszero(a3) ? -t : t)
-        v += VertType(xj,yj,zj)
+        v = v .+ VertType(xj,yj,zj)
 
     end # edge check
 
     #Now we just average the edge intersections and add them to coordinate
     s = one(T) / e_count
-    if translate_pt
-        v = (VertType(inds...)  .+ s .* v) .* scale + origin
-    else
-        v = (VertType(inds...) .+ s .* v)# * scale[i] + origin[i]
-    end
+    v = (VertType(inds...)  .+ s .* v) .* scale .+ origin
 
     #Add vertex to buffer, store pointer to vertex index in buffer
     buffer[m+1] = length(vertices)

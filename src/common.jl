@@ -81,11 +81,11 @@ end
 
 @doc """
 
-    function isosurface(sdf::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm,
+    function isosurface(sdf::AbstractArray{T, 3}, [ method::AbstractMeshingAlgorithm ],
                          [ VertType = SVector{3,Float64} ], [ FaceType} = SVector{3, Int} ] ;
                          origin = SVector(-1.0,-1.0,-1.0), widths = SVector(2.0,2.0,2.0))
 
-    function isosurface(f::Function, method::AbstractMeshingAlgorithm,
+    function isosurface(f::Function, [ method::AbstractMeshingAlgorithm ],
                          [ VertType = SVector{3,Float64} ], [FaceType = SVector{3, Int} ] ;
                          origin = SVector(-1.0,-1.0,-1.0), widths = SVector(2.0,2.0,2.0)
                          samples=(24,24,24))`
@@ -95,13 +95,18 @@ end
 Returns: (Vector{VertType}, Vector{FaceType})
 
 Defaults:
-- VertType = SVector{3,Float64}
-- FaceType = SVector{3, Int} ] ;
-- origin = SVector(-1.0,-1.0,-1.0)
-- widths = SVector(2.0,2.0,2.0)
-- samples=(24,24,24) (function sampling only)
+- VertType = SVector{3,Float64} (positional)
+- FaceType = SVector{3, Int} ] ; (positional)
+- origin = SVector(-1.0,-1.0,-1.0) (keyword)
+- widths = SVector(2.0,2.0,2.0) (keyword)
+- samples=(24,24,24) (keyword, function sampling only)
 
-`method` must be an instance of an `AbstractMeshingAlgorithm`
+`method` must be an instance of an `AbstractMeshingAlgorithm`, e.g.:
+- MarchingCubes()
+- MarchingTetrahedra()
+- NaiveSurfaceNets()
+
+If `isosurface` is called without a specified algorithm, it will default to MarchingCubes.
 
 If a subtype of `AbstractArray` is specified, the mesh will be default be centered at the origin between
 (-1,1) in each axis. This may be overridden by specifying a new origin and widths for the axis-aligned bounding box
@@ -109,7 +114,7 @@ using keywords of the same names. For example if we want our vertices in the ran
 and `widths = SVector(1,1,1)`.
 
 If a function is specified, it will be uniformly sampled in each axis by the amount specified in `samples`.
-The function is called the a single argument of `VertType`.
+The function is called using the specifed `VertType`.
 
 Performance Tips:
 - ensure `VertType`, `origin`, and `widths` are all of the same type
@@ -120,4 +125,7 @@ See also:
 - MarchingTetrahedra
 - NaiveSurfaceNets
 
-""" isosurface
+"""
+function isosurface(A; kwargs...)
+    isosurface(A, MarchingCubes(); kwargs...)
+end

@@ -131,7 +131,7 @@ end
 Given a 3D array and an isovalue, extracts a mesh represention of the
 an approximate isosurface by the method of marching tetrahedra.
 """
-function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{3, Int};
+function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
 
     vts    = Dict{Int, Int}()
@@ -166,7 +166,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
 end
 
 function isosurface(f::Function, method::MarchingTetrahedra,
-                    ::Type{VertType}=SVector{3,Float32}, ::Type{FaceType}=SVector{3, Int};
+                    ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
                     samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T, VertType, FaceType}
 
@@ -182,16 +182,16 @@ function isosurface(f::Function, method::MarchingTetrahedra,
     zv = zero(eltype(VertType))
     vals = (zv,zv,zv,zv,zv,zv,zv,zv)
 
-    @inbounds for k = 1:nz-1, j = 1:ny-1, i = 1:nx-1
-        points = (VertType(i-1,j-1,k-1).* scale + origin,
-                  VertType(i-1,j  ,k-1).* scale + origin,
-                  VertType(i  ,j  ,k-1).* scale + origin,
-                  VertType(i  ,j-1,k-1).* scale + origin,
-                  VertType(i-1,j-1,k  ).* scale + origin,
-                  VertType(i-1,j  ,k  ).* scale + origin,
-                  VertType(i  ,j  ,k  ).* scale + origin,
-                  VertType(i  ,j-1,k  ).* scale + origin)
-        if i == 0
+    @inbounds for k = 1:nz, j = 1:ny, i = 1:nx
+        points = (VertType(i-1,j-1,k-1).* scale .+ origin,
+                  VertType(i-1,j  ,k-1).* scale .+ origin,
+                  VertType(i  ,j  ,k-1).* scale .+ origin,
+                  VertType(i  ,j-1,k-1).* scale .+ origin,
+                  VertType(i-1,j-1,k  ).* scale .+ origin,
+                  VertType(i-1,j  ,k  ).* scale .+ origin,
+                  VertType(i  ,j  ,k  ).* scale .+ origin,
+                  VertType(i  ,j-1,k  ).* scale .+ origin)
+        if i == 1
             vals = (f(points[1]),
                     f(points[2]),
                     f(points[3]),
