@@ -2,13 +2,6 @@
 #Look up Table
 include("lut/mc.jl")
 
-"""
-Construct a `HomogenousMesh` from a `SignedDistanceField` using the
-marching cubes algorithm. This method is faster than Marching Tetrahedra
-and generates fewer vertices and faces (about 1/4 as many).
-However it may generate non-manifold meshes, while Marching
-Tetrahedra guarentees a manifold mesh.
-"""
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
     nx, ny, nz = size(sdf)
