@@ -6,7 +6,8 @@ The easiest way to work with Meshing is with GeometryTypes.
 This package extends the [mesh constructors](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1)
 from [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl) for convience.
 
-The algorithms operate on a `Function`, `AbstractArray`, or `SignedDistanceField` and output a concrete `AbstractMesh`. For example:
+The algorithms operate on a `Function`, `AbstractArray`, or `SignedDistanceField` and output a concrete `AbstractMesh`.
+For example, we can use the GeometryTypes API as follows:
 
 ```
 using Meshing
@@ -25,6 +26,35 @@ save("sphere.ply",m)
 ```
 
 For a full listing of concrete `AbstractMesh` types see [GeometryTypes.jl mesh documentation](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1).
+
+Alternatively, we can use the `isosurface` API to sample a function:
+
+```
+using Meshing
+using LinearAlgebra
+using StaticArrays
+
+m = isosurface(origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
+    sqrt(sum(dot(v,v))) - 1
+end
+
+# by default MarchingCubes() is used, but we may specify a different algorithm as follows
+
+points, faces = isosurface(MarchingTetrahedra(), origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
+    sqrt(sum(dot(v,v))) - 1
+end
+```
+
+Similarly if we have some 3D levelset data such as a CT scan, we can just do:
+
+```
+using Meshing
+
+A = rand(50,50,50)
+
+points,faces = isosurface(A)
+```
+
 
 ## Meshing Algorithms
 
@@ -71,7 +101,7 @@ isosurface
 ## GeometryTypes
 
 Meshing extends the mesh types in GeometryTypes for convience and use with visualization tools such as Makie and MeshCat.
-Any instance of an `AbstractMesh` may be called with arguements as follows:
+Any instance of an `AbstractMesh` may be called with arguments as follows:
 
 ```
     (::Type{MT})(df::SignedDistanceField{3,ST,FT}, method::AbstractMeshingAlgorithm)::MT where {MT <: AbstractMesh, ST, FT}
@@ -80,7 +110,7 @@ Any instance of an `AbstractMesh` may be called with arguements as follows:
     (::Type{MT})(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; vargs...) where {MT <: AbstractMesh, T}
 ```
 
-With the GeometryTypes API, the bounding box is specified by a `HyperRectangle`.
+With the GeometryTypes API, the bounding box is specified by a `HyperRectangle`, or keyword specified `origin` and `widths`.
 
 Some notes on VertType and FaceType. Since it is common to simply call `HomogenousMesh` or `GLNormalMesh`, we have added promotion and default type logic
 to the GeometryTypes API to improve type stability and therefore performance.

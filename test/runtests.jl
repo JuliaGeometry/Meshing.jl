@@ -311,6 +311,10 @@ end
             end
         end
     end
+    @testset "Defaults" begin
+        A = rand(10,10,10)
+        @test isosurface(A) == isosurface(A, MarchingCubes())
+    end
 end
 
 @testset "GeometryTypes API" begin
