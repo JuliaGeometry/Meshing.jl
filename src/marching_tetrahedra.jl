@@ -135,11 +135,6 @@ function procVox(vals, iso::Real, x, y, z, nx, ny, scale, origin,
     end
 end
 
-
-"""
-Given a 3D array and an isovalue, extracts a mesh represention of the
-an approximate isosurface by the method of marching tetrahedra.
-"""
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
 

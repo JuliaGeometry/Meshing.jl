@@ -11,10 +11,6 @@
 #Look up Table
 include("lut/sn.jl")
 
-"""
-Generate a mesh using naive surface nets.
-This takes the center of mass of the voxel as the vertex for each cube.
-"""
 function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{4, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
 
@@ -90,10 +86,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     vertices, faces
 end
 
-"""
-Generate a mesh using naive surface nets.
-This takes the center of mass of the voxel as the vertex for each cube.
-"""
 function isosurface(f::Function, method::NaiveSurfaceNets,
                     ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{4, Int};
                     origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
