@@ -301,3 +301,12 @@ end
         @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingCubes(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
     end
 end
+
+@testset "GeometryTypes API" begin
+    @testset "vararg passing" begin
+        A = rand(20,20,20)
+        m = GLNormalMesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
+        @test typeof(m) == GLNormalMesh
+    end
+
+end

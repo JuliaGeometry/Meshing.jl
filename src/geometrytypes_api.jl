@@ -20,9 +20,9 @@ function (::Type{MT})(f::Function, h::HyperRectangle, method::AbstractMeshingAlg
     MT(vts, fcs)::MT
 end
 
-function (::Type{MT})(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; vargs...) where {MT <: AbstractMesh, T}
+function (::Type{MT})(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; kwargs...) where {MT <: AbstractMesh, T}
     vertex_eltype = promote_type(T, typeof(method.iso), typeof(method.eps))
     VertType, FaceType = _determine_types(MT,vertex_eltype, default_face_length(method))
-    vts, fcs = isosurface(volume, method, VertType, FaceType, vargs...)
+    vts, fcs = isosurface(volume, method, VertType, FaceType; kwargs...)
     MT(vts, fcs)::MT
 end
