@@ -1,6 +1,6 @@
 name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
-version = "0.5.1"
+version = "0.5.2"
 
 [deps]
 GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
