@@ -2,6 +2,7 @@ using Meshing
 using Test
 using GeometryTypes
 using ForwardDiff
+using StaticArrays
 using Statistics: mean
 using LinearAlgebra: dot, norm
 
@@ -299,6 +300,16 @@ end
         @test typeof(PlainMesh{Float16,Face{4,Int}}(sdf_torus,NaiveSurfaceNets(zero(Float16)))) == PlainMesh{Float16,Face{4,Int}}
         @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingTetrahedra(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
         @test typeof(PlainMesh{Float16,Face{3,Int}}(sdf_torus,MarchingCubes(zero(Float16)))) == PlainMesh{Float16,Face{3,Int}}
+    end
+    @testset "Integers" begin
+        A = rand(Int, 10,10,10)
+        for algo in algos
+            @testset "$algo" begin
+                p, t = isosurface(A, algo())
+                @test typeof(p) <: Vector{SVector{3,Float64}}
+                @test typeof(t) <: Vector{ SVector{ Meshing.default_face_length(algo()), Int } }
+            end
+        end
     end
 end
 
