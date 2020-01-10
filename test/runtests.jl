@@ -143,6 +143,21 @@ end
     @test length(faces(m)) == length(faces(mf))
 end
 
+@testset "marching tetrahedra" begin
+    a1 = MarchingTetrahedra()
+    a2 = MarchingTetrahedra(reduceverts=false)
+    m1 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a1, samples=(21,21,21)) do v
+        sqrt(sum(dot(v,v))) - 1 # sphere
+    end
+    m2 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a2, samples=(21,21,21)) do v
+        sqrt(sum(dot(v,v))) - 1 # sphere
+    end
+    @test length(m1.vertices) == 5582
+    @test length(m2.vertices) == 33480
+    @test length(m1.faces) == 11160
+    @test length(m2.faces) == length(m1.faces)
+end
+
 @testset "sign flips" begin
     for algo_type in algos
         algo = algo_type()
@@ -187,7 +202,10 @@ end
     resolution = 0.1
     sdf = SignedDistanceField(f, bounds, resolution)
 
-    for algorithm in (MarchingCubes(0.5), MarchingTetrahedra(0.5))
+    for algorithm in (MarchingCubes(0.5),
+                      MarchingTetrahedra(0.5),
+                      MarchingCubes(iso=0.5,reduceverts=false),
+                      MarchingTetrahedra(iso=0.5,reduceverts=false))
         @testset "$(typeof(algorithm))" begin
             mesh = @inferred GLNormalMesh(sdf, algorithm)
             # should be centered on the origin
