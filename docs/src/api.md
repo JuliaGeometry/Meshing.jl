@@ -1,13 +1,34 @@
 # API
 
-## Quick Start
+## Quick Start - isosurface
 
-The easiest way to work with Meshing is with GeometryTypes.
-This package extends the [mesh constructors](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1)
-from [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl) for convience.
+Given 3D levelset data such as a CT scan, we can do:
+
+```
+using Meshing
+
+A = rand(50,50,50) # 3D Matrix
+
+points,faces = isosurface(A)
+```
+
+An iso-level is specified within the algorithm specification as follows:
+
+```
+using Meshing
+
+A = rand(50,50,50) # 3D Matrix
+
+points,faces = isosurface(A, MarchingCubes(iso=1))
+```
+
+
+## Quick Start - GeometryTypes
+
+Meshing is well-integrated with [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl)  by extending the [mesh constructors](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1) for convience.
 
 The algorithms operate on a `Function`, `AbstractArray`, or `SignedDistanceField` and output a concrete `AbstractMesh`.
-For example, we can use the GeometryTypes API as follows:
+For example, we can use the GeometryTypes API as follows, using `HyperRectangle` to specify the bounds:
 
 ```
 using Meshing
@@ -34,7 +55,7 @@ using Meshing
 using LinearAlgebra
 using StaticArrays
 
-m = isosurface(origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
+points, faces = isosurface(origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
     sqrt(sum(dot(v,v))) - 1
 end
 
@@ -43,16 +64,6 @@ end
 points, faces = isosurface(MarchingTetrahedra(), origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
     sqrt(sum(dot(v,v))) - 1
 end
-```
-
-Similarly if we have some 3D levelset data such as a CT scan, we can just do:
-
-```
-using Meshing
-
-A = rand(50,50,50)
-
-points,faces = isosurface(A)
 ```
 
 
