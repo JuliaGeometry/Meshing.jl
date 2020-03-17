@@ -139,7 +139,7 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
         #interpindex = method.insidepositive ? _get_interpindex_pos(iso_vals, method.iso) : _get_interpindex(iso_vals, method.iso)
 
-        value_interp = sum(iso_vals)
+        value_interp = sum(iso_vals)*0.125
         value_true = f(center(cell))
         if (cubeindex == 0xff && value_true < 0) || (iszero(cubeindex) && value_true > 0)
             continue
