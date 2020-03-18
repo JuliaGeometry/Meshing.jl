@@ -123,6 +123,17 @@ struct AdaptiveMarchingCubes{T} <: AbstractAdaptiveMeshingAlgorithm
     insidepositive::Bool
 end
 
+
+struct AdaptiveMarchingTetrahedra{T} <: AbstractAdaptiveMeshingAlgorithm
+    iso::T
+    eps::T
+    rtol::T
+    atol::T
+    reduceverts::Bool
+    insidepositive::Bool
+end
+
+
 #
 # Helper functions
 #
