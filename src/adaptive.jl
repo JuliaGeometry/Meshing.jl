@@ -54,18 +54,21 @@ function octsplit(h::HyperRectangle)
     end
 end
 
-function get_iso_vals(f, val_store, points)
+function get_iso_vals(f, val_store, points::NTuple{8,T}) where T
     @inbounds begin
         return ntuple(8) do i
-            pt = points[i]
-            # tuples are faster to hash than SVec
-            key_tup = tuple(pt[1],pt[2],pt[3])
-            if haskey(val_store,key_tup)
-                val_store[key_tup]
-            else
-                val_store[key_tup] = f(pt)
-            end
+            get_iso_vals(f,val_store,points[i])
         end
+    end
+end
+
+function get_iso_vals(f, val_store, pt)
+    # tuples are faster to hash than SVec
+    key_tup = pt.data # tuple in SVectors/GeometryTypes, probably shoudl make more generic
+    if haskey(val_store,key_tup)
+        val_store[key_tup]
+    else
+        val_store[key_tup] = f(pt)
     end
 end
 
@@ -140,7 +143,8 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
         #interpindex = method.insidepositive ? _get_interpindex_pos(iso_vals, method.iso) : _get_interpindex(iso_vals, method.iso)
 
         value_interp = sum(iso_vals)*0.125
-        value_true = f(center(cell))
+        value_true = get_iso_vals(f, val_store, center(cell))
+
         if (cubeindex == 0xff && value_true < 0) || (iszero(cubeindex) && value_true > 0)
             continue
         elseif minimum(cell.widths) > method.atol && !isapprox(value_interp, value_true, rtol=method.rtol, atol=method.atol)
