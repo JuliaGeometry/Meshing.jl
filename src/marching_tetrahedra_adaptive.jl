@@ -27,15 +27,21 @@ end
 end
 
 
-@inline function getVertId(e, width, vals, iso::Real, origin, vtsAry::Vector, eps::Real)
+@inline function getVertId(e, width, vals, iso::Real, origin, vtsAry::Vector, vertex_store, eps::Real)
 
     VertType = eltype(vtsAry)
 
     # calculate vert position
     v = vertPos(e, width, origin, vals, iso, eps, VertType)
-    push!(vtsAry, v)
-
-    return length(vtsAry)
+    vt_key = v.data
+    if haskey(vertex_store, vt_key)
+        return vertex_store[vt_key]
+    else
+        push!(vtsAry, v)
+        l = length(vtsAry)
+        vertex_store[vt_key] = l
+        return l
+    end
 end
 
 """
@@ -46,7 +52,7 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals, iso::Real, width, origin, vtsAry::Vector, fcs::Vector,
+function procVox(vals, iso::Real, width, origin, vtsAry::Vector, vertex_store, fcs::Vector,
                  eps::Real, cubeindex)
     VertType = eltype(vtsAry)
     FaceType = eltype(fcs)
@@ -59,16 +65,16 @@ function procVox(vals, iso::Real, width, origin, vtsAry::Vector, fcs::Vector,
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
 
         # bail if there are no more faces
         iszero(e[4]) && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, eps),
-                    getVertId(voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, eps)))
+                    getVertId(voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
     end
 end
 
@@ -85,6 +91,7 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
     refinement_queue = HyperRectangle{3,ET}[HyperRectangle{3,ET}(origin,widths)]
 
     val_store = Dict{NTuple{3,ET},ET}();
+    vertex_store = Dict{NTuple{3,ET},ET}();
 
     @inbounds while true
 
@@ -112,7 +119,7 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
         else
             # Find the vertices where the surface intersects the cube
             # The underlying space is non-linear so there will be error otherwise
-            procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, fcs, method.eps, cubeindex)
+            procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
         end
     end
     vts,fcs
