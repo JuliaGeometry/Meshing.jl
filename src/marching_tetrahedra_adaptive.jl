@@ -1,4 +1,16 @@
 
+function vertices_mt(h::HyperRectangle, ::Type{SV}) where SV
+    o = SV(h.origin...)
+    w = SV(h.widths...)
+    @inbounds (o,
+     o.+SV(0,w[2],0),
+     o.+SV(w[1],w[2],0),
+     o.+SV(w[1],0,0),
+     o.+SV(0,0,w[3]),
+     o.+SV(0,w[2],w[3]),
+     o.+w,
+     o.+SV(w[1],0,w[3]))
+end
 
 @inline function vertPos(e, width, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
     T = eltype(vals)
@@ -11,7 +23,7 @@
     c1 = voxCrnrPos(VertType)[ixs[1]]
     c2 = voxCrnrPos(VertType)[ixs[2]]
 
-    (c1 .* b + c2.* a) .* width .-1 .+ origin
+    (c1 .* b + c2.* a) .* width .+ origin
 end
 
 
@@ -81,7 +93,7 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
         end
 
         cell = pop!(refinement_queue)
-        points = vertices(cell, VertType)
+        points = vertices_mt(cell, VertType)
 
         iso_vals = get_iso_vals(f,val_store,points)
 
