@@ -72,8 +72,7 @@ function octsplit(h::HyperRectangle)
         HyperRectangle(no.+VT(z,z,nw[3]), nw),
         HyperRectangle(no.+VT(nw[1],nw[2],z), nw),
         HyperRectangle(no.+VT(nw[1],z,nw[3]), nw),
-        HyperRectangle(no.+VT(z,nw[2],nw[3]), nw),
-        HyperRectangle(no.+VT(z,z,nw[3]), nw))
+        HyperRectangle(no.+VT(z,nw[2],nw[3]), nw))
     end
 end
 
@@ -186,27 +185,29 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
 end
 
 
-@inline function vertPos(e, width, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
+@inline function vertPos(f, e, width, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
     T = eltype(vals)
 
     ixs     = voxEdgeCrnrs[e]
-    srcVal  = vals[ixs[1]]
-    tgtVal  = vals[ixs[2]]
-    a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
-    b       = one(T)-a
-    c1 = voxCrnrPos(VertType)[ixs[1]]
-    c2 = voxCrnrPos(VertType)[ixs[2]]
+    # srcVal  = vals[ixs[1]]
+    # tgtVal  = vals[ixs[2]]
+    # a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
+    # b       = one(T)-a
+    c1 = voxCrnrPos(VertType)[ixs[1]].*width .+ origin
+    c2 = voxCrnrPos(VertType)[ixs[2]].*width .+ origin
+    a = brent(f, c1, (c2.-c1)) # find root using brents method
+    b = one(T) - a
 
-    (c1 .* b + c2.* a) .* width .+ origin
+    (c1 .* b + c2.* a)
 end
 
 
-@inline function getVertId(e, width, vals, iso::Real, origin, vtsAry::Vector, vertex_store, eps::Real)
+@inline function getVertId(f, e, width, vals, iso::Real, origin, vtsAry::Vector, vertex_store, eps::Real)
 
     VertType = eltype(vtsAry)
 
     # calculate vert position
-    v = vertPos(e, width, origin, vals, iso, eps, VertType)
+    v = vertPos(f, e, width, origin, vals, iso, eps, VertType)
     vt_key = v.data
     if haskey(vertex_store, vt_key)
         return vertex_store[vt_key]
@@ -226,7 +227,7 @@ end
 Processes a voxel, adding any new vertices and faces to the given
 containers as necessary.
 """
-function procVox(vals, iso::Real, width, origin, vtsAry::Vector, vertex_store, fcs::Vector,
+function procVox(f, vals, iso::Real, width, origin, vtsAry::Vector, vertex_store, fcs::Vector,
                  eps::Real, cubeindex)
     VertType = eltype(vtsAry)
     FaceType = eltype(fcs)
@@ -239,16 +240,16 @@ function procVox(vals, iso::Real, width, origin, vtsAry::Vector, vertex_store, f
 
         # add the face to the list
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
+                    getVertId(f, voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(f, voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(f, voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
 
         # bail if there are no more faces
         iszero(e[4]) && continue
         push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
+                    getVertId(f, voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(f, voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, vertex_store, eps),
+                    getVertId(f, voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
     end
 end
 
@@ -288,7 +289,7 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
         #@show cubeindex, interpindex
         if (cubeindex == 0xff && interpindex == 0xff) || (iszero(cubeindex) && iszero(interpindex))
             continue
-        elseif minimum(cell.widths) > method.atol
+        else #if minimum(cell.widths) > method.atol
             value_interp = interpolate_mt(iso_vals)
             accurate = true
             for i = 1:7
@@ -299,10 +300,8 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
                 end
             end
             if accurate
-                procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
+                procVox(f, iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
             end
-        else
-            procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
         end
     end
     vts,fcs
