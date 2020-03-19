@@ -18,6 +18,29 @@ function vertices(h::HyperRectangle, ::Type{SV}) where SV
      o.+SV(0,w[2],w[3]))
 end
 
+function vertices_mt(h::HyperRectangle, ::Type{SV}) where SV
+    o = SV(h.origin...)
+    w = SV(h.widths...)
+    @inbounds (o,
+     o.+SV(0,w[2],0),
+     o.+SV(w[1],w[2],0),
+     o.+SV(w[1],0,0),
+     o.+SV(0,0,w[3]),
+     o.+SV(0,w[2],w[3]),
+     o.+w,
+     o.+SV(w[1],0,w[3]))
+end
+
+function interpolate_mt(c)
+    (sum(c)*0.125, # center
+     (c[1]+c[2]+c[3]+c[4])*0.25,
+     (c[1]+c[4]+c[5]+c[8])*0.25,
+     (c[1]+c[2]+c[5]+c[6])*0.25,
+     (c[5]+c[6]+c[7]+c[8])*0.25,
+     (c[2]+c[3]+c[6]+c[7])*0.25,
+     (c[3]+c[4]+c[7]+c[8])*0.25)
+end
+
 function face_center_vertices(h::HyperRectangle)
     SV = SVector{3,Float64}
     o = SV(h.origin...)
@@ -80,7 +103,7 @@ end
     iso_vals[5] < iso && (cubeindex |= 0x10)
     iso_vals[6] < iso && (cubeindex |= 0x20)
     iso_vals[7] < iso && (cubeindex |= 0x40)
-    cubeindex
+    cubeindex | 0x80
 end
 
 """
@@ -99,7 +122,7 @@ where the sign convention indicates positive inside the surface
     iso_vals[5] > iso && (cubeindex |= 0x10)
     iso_vals[6] > iso && (cubeindex |= 0x20)
     iso_vals[7] > iso && (cubeindex |= 0x40)
-    cubeindex
+    cubeindex | 0x80
 end
 
 
@@ -162,19 +185,6 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
     vts,fcs
 end
 
-
-function vertices_mt(h::HyperRectangle, ::Type{SV}) where SV
-    o = SV(h.origin...)
-    w = SV(h.widths...)
-    @inbounds (o,
-     o.+SV(0,w[2],0),
-     o.+SV(w[1],w[2],0),
-     o.+SV(w[1],0,0),
-     o.+SV(0,0,w[3]),
-     o.+SV(0,w[2],w[3]),
-     o.+w,
-     o.+SV(w[1],0,w[3]))
-end
 
 @inline function vertPos(e, width, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
     T = eltype(vals)
@@ -265,24 +275,33 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
 
         cell = pop!(refinement_queue)
         points = vertices_mt(cell, VertType)
+        interp_points = face_center_vertices(cell)
 
         iso_vals = get_iso_vals(f,val_store,points)
+        true_vals = get_iso_vals(f,val_store,interp_points)
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
         #interpindex = method.insidepositive ? _get_interpindex_pos(iso_vals, method.iso) : _get_interpindex(iso_vals, method.iso)
-
-        value_interp = sum(iso_vals)*0.125
-        value_true = get_iso_vals(f, val_store, center(cell))
-
-        if (cubeindex == 0xff && value_true < 0) || (iszero(cubeindex) && value_true > 0)
+        interpindex = method.insidepositive ? _get_interpindex_pos(true_vals, method.iso) : _get_interpindex(true_vals, method.iso)
+        #@show cubeindex, interpindex
+        if (cubeindex == 0xff && interpindex == 0xff) || (iszero(cubeindex) && iszero(interpindex))
             continue
-        elseif minimum(cell.widths) > method.atol && !isapprox(value_interp, value_true, rtol=method.rtol, atol=method.atol)
-            append!(refinement_queue, octsplit(cell))
+        elseif minimum(cell.widths) > method.atol
+            value_interp = interpolate_mt(iso_vals)
+            accurate = true
+            for i = 1:7
+                if !isapprox(true_vals[i], value_interp[i], rtol=method.rtol, atol=method.atol)
+                    append!(refinement_queue, octsplit(cell))
+                    accurate = false
+                    break
+                end
+            end
+            if accurate
+                procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
+            end
         else
-            # Find the vertices where the surface intersects the cube
-            # The underlying space is non-linear so there will be error otherwise
             procVox(iso_vals, method.iso, cell.widths, cell.origin, vts, vertex_store, fcs, method.eps, cubeindex)
         end
     end
