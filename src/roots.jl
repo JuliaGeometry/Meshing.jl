@@ -1,13 +1,13 @@
 # derived from Modesto Mas implementation:
 # https://mmas.github.io/brent-julia
-function brent(f, origin, width, xtol=1e-10, ytol=1e-10,
-               maxiter=100)
+function brent(f, origin, width, xtol=1e-6, ytol=1e-6, maxiter=50)
     ET = eltype(origin)
     EPS = eps(ET)
+
     x0 = zero(ET)
     x1 = one(ET)
-    y0 = f(x0.*width .+ origin)
-    y1 = f(x1.*width .+ origin)
+    y0 = f(x0.*width .+ origin)::ET
+    y1 = f(x1.*width .+ origin)::ET
     if abs(y0) < abs(y1)
         # Swap lower and upper bounds.
         x0, x1 = x1, x0
@@ -49,7 +49,7 @@ function brent(f, origin, width, xtol=1e-10, ytol=1e-10,
             bisection = false
         end
 
-        y = f(x.*width .+ origin)
+        y = f(x.*width .+ origin)::ET
         # y-tolerance.
         if abs(y) < ytol
             return x

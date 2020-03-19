@@ -6,53 +6,65 @@
 # while sampling
 
 function vertices(h::HyperRectangle, ::Type{SV}) where SV
-    o = SV(h.origin...)
-    w = SV(h.widths...)
-    @inbounds (o,
-     o.+SV(w[1],0,0),
-     o.+SV(w[1],w[2],0),
-     o.+SV(0,w[2],0),
-     o.+SV(0,0,w[3]),
-     o.+SV(w[1],0,w[3]),
-     o.+w,
-     o.+SV(0,w[2],w[3]))
+    z = zero(eltype(SV))
+    @inbounds begin
+        o = SV(h.origin[1],h.origin[2],h.origin[3])
+        w = SV(h.widths[1],h.widths[2],h.widths[3])
+        (o,
+        o.+SV(w[1],z,z),
+        o.+SV(w[1],w[2],z),
+        o.+SV(z,w[2],z),
+        o.+SV(z,z,w[3]),
+        o.+SV(w[1],z,w[3]),
+        o.+w,
+        o.+SV(z,w[2],w[3]))
+    end
 end
 
 function vertices_mt(h::HyperRectangle, ::Type{SV}) where SV
-    o = SV(h.origin...)
-    w = SV(h.widths...)
-    @inbounds (o,
-     o.+SV(0,w[2],0),
-     o.+SV(w[1],w[2],0),
-     o.+SV(w[1],0,0),
-     o.+SV(0,0,w[3]),
-     o.+SV(0,w[2],w[3]),
-     o.+w,
-     o.+SV(w[1],0,w[3]))
+    z = zero(eltype(SV))
+    @inbounds begin
+        o = SV(h.origin[1],h.origin[2],h.origin[3])
+        w = SV(h.widths[1],h.widths[2],h.widths[3])
+        (o,
+        o.+SV(   z,w[2],   z),
+        o.+SV(w[1],w[2],   z),
+        o.+SV(w[1],   z,   z),
+        o.+SV(   z,   z,w[3]),
+        o.+SV(   z,w[2],w[3]),
+        o.+w,
+        o.+SV(w[1],   z,w[3]))
+    end
 end
 
 function interpolate_mt(c)
-    (sum(c)*0.125, # center
-     (c[1]+c[2]+c[3]+c[4])*0.25,
-     (c[1]+c[4]+c[5]+c[8])*0.25,
-     (c[1]+c[2]+c[5]+c[6])*0.25,
-     (c[5]+c[6]+c[7]+c[8])*0.25,
-     (c[2]+c[3]+c[6]+c[7])*0.25,
-     (c[3]+c[4]+c[7]+c[8])*0.25)
+    @inbounds begin
+        (sum(c)*0.125, # center
+        (c[1]+c[2]+c[3]+c[4])*0.25,
+        (c[1]+c[4]+c[5]+c[8])*0.25,
+        (c[1]+c[2]+c[5]+c[6])*0.25,
+        (c[5]+c[6]+c[7]+c[8])*0.25,
+        (c[2]+c[3]+c[6]+c[7])*0.25,
+        (c[3]+c[4]+c[7]+c[8])*0.25)
+    end
 end
 
-function face_center_vertices(h::HyperRectangle)
-    SV = SVector{3,Float64}
-    o = SV(h.origin...)
-    w = SV(h.widths...)
-    hw = w.*0.5
-    (SV(center(h)...),
-     o.+SV(hw[1],hw[2],    0),
-     o.+SV(hw[1],    0,hw[3]),
-     o.+SV(0    ,hw[2],hw[3]),
-     o.+SV(hw[1],hw[2], w[3]),
-     o.+SV(hw[1], w[2],hw[3]),
-     o.+SV( w[1],hw[2],hw[3]))
+function face_center_vertices(h::HyperRectangle{N,T}) where{N,T}
+    SV = SVector{3,T}
+    z = zero(T)
+    @inbounds begin
+        o = SV(h.origin[1],h.origin[2],h.origin[3])
+        w = SV(h.widths[1],h.widths[2],h.widths[3])
+        hw = w.*0.5
+        c = center(h)
+        (SV(c[1],c[2],c[3]),
+        o.+SV(hw[1],hw[2],    z),
+        o.+SV(hw[1],    z,hw[3]),
+        o.+SV(z    ,hw[2],hw[3]),
+        o.+SV(hw[1],hw[2], w[3]),
+        o.+SV(hw[1], w[2],hw[3]),
+        o.+SV( w[1],hw[2],hw[3]))
+    end
 end
 
 center(rect::HyperRectangle) = rect.origin + 0.5 * rect.widths
@@ -90,7 +102,7 @@ function get_iso_vals(f, val_store, pt)
     if haskey(val_store,key_tup)
         val_store[key_tup]
     else
-        val_store[key_tup] = f(pt)
+        val_store[key_tup] = f(pt)::valtype(val_store)
     end
 end
 
@@ -102,7 +114,7 @@ end
     iso_vals[5] < iso && (cubeindex |= 0x10)
     iso_vals[6] < iso && (cubeindex |= 0x20)
     iso_vals[7] < iso && (cubeindex |= 0x40)
-    cubeindex | 0x80
+    cubeindex
 end
 
 """
@@ -121,7 +133,7 @@ where the sign convention indicates positive inside the surface
     iso_vals[5] > iso && (cubeindex |= 0x10)
     iso_vals[6] > iso && (cubeindex |= 0x20)
     iso_vals[7] > iso && (cubeindex |= 0x40)
-    cubeindex | 0x80
+    cubeindex
 end
 
 
@@ -185,14 +197,10 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
 end
 
 
-@inline function vertPos(f, e, width, origin, vals::V, iso, eps, ::Type{VertType}) where {V, VertType}
-    T = eltype(vals)
+@inline function vertPos(f, e, width, origin, ::Type{VertType}) where {VertType}
+    T = eltype(eltype(VertType))
 
     ixs     = voxEdgeCrnrs[e]
-    # srcVal  = vals[ixs[1]]
-    # tgtVal  = vals[ixs[2]]
-    # a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
-    # b       = one(T)-a
     c1 = voxCrnrPos(VertType)[ixs[1]].*width .+ origin
     c2 = voxCrnrPos(VertType)[ixs[2]].*width .+ origin
     a = brent(f, c1, (c2.-c1)) # find root using brents method
@@ -207,7 +215,7 @@ end
     VertType = eltype(vtsAry)
 
     # calculate vert position
-    v = vertPos(f, e, width, origin, vals, iso, eps, VertType)
+    v = vertPos(f, e, width, origin, VertType)
     vt_key = v.data
     if haskey(vertex_store, vt_key)
         return vertex_store[vt_key]
@@ -284,12 +292,11 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
-        #interpindex = method.insidepositive ? _get_interpindex_pos(iso_vals, method.iso) : _get_interpindex(iso_vals, method.iso)
         interpindex = method.insidepositive ? _get_interpindex_pos(true_vals, method.iso) : _get_interpindex(true_vals, method.iso)
-        #@show cubeindex, interpindex
-        if (cubeindex == 0xff && interpindex == 0xff) || (iszero(cubeindex) && iszero(interpindex))
+
+        if (cubeindex == 0xff && interpindex == 0x7f) || (iszero(cubeindex) && iszero(interpindex))
             continue
-        else #if minimum(cell.widths) > method.atol
+        else
             value_interp = interpolate_mt(iso_vals)
             accurate = true
             for i = 1:7
