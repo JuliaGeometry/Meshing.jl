@@ -1,6 +1,6 @@
 # derived from Modesto Mas implementation:
 # https://mmas.github.io/brent-julia
-function brent(f, origin, width, xtol=1e-6, ytol=1e-6, maxiter=50)
+function brent(f, origin, width, xtol=1e-3, ytol=1e-3, maxiter=50)
     ET = eltype(origin)
     EPS = eps(ET)
 

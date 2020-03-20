@@ -162,15 +162,6 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
 
         iso_vals = get_iso_vals(f,val_store,points)
 
-        # iso_vals = (f(points[1]),
-        #             f(points[2]),
-        #             f(points[3]),
-        #             f(points[4]),
-        #             f(points[5]),
-        #             f(points[6]),
-        #             f(points[7]),
-        #             f(points[8]))
-
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
         cubeindex = method.insidepositive ? _get_cubeindex_pos(iso_vals, method.iso) : _get_cubeindex(iso_vals, method.iso)
@@ -203,10 +194,9 @@ end
     ixs     = voxEdgeCrnrs[e]
     c1 = voxCrnrPos(VertType)[ixs[1]].*width .+ origin
     c2 = voxCrnrPos(VertType)[ixs[2]].*width .+ origin
-    a = brent(f, c1, (c2.-c1)) # find root using brents method
-    b = one(T) - a
+    a = brent(f, c1, c2.-c1) # find root using brents method
 
-    (c1 .* b + c2.* a)
+    c1 + a.*(c2.-c1)
 end
 
 
@@ -221,9 +211,7 @@ end
         return vertex_store[vt_key]
     else
         push!(vtsAry, v)
-        l = length(vtsAry)
-        vertex_store[vt_key] = l
-        return l
+        return vertex_store[vt_key] = length(vtsAry)
     end
 end
 
@@ -271,10 +259,16 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
     fcs = FaceType[]
 
     # refinement queue
-    refinement_queue = HyperRectangle{3,ET}[HyperRectangle{3,ET}(origin,widths)]
+    # initialize with depth two
+    refinement_queue = HyperRectangle{3,ET}[]
+    for h in octsplit(HyperRectangle{3,ET}(origin,widths))
+        append!(refinement_queue,octsplit(h))
+    end
 
     val_store = Dict{NTuple{3,ET},ET}();
     vertex_store = Dict{NTuple{3,ET},ET}();
+    sizehint!(val_store, trunc(Int, maximum(widths)*12/max(method.atol,method.rtol)))
+    sizehint!(vertex_store, trunc(Int, maximum(widths)*12/max(method.atol,method.rtol)))
 
     @inbounds while true
 
