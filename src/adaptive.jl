@@ -215,6 +215,8 @@ end
     end
 end
 
+slivers(x,y,z) = x == y || y == z || x == z
+
 """
     procVox(vals, iso::Real, x, y, z, nx, ny,
                     vts::Dict, vtsAry::Vector, fcs::Vector,
@@ -233,19 +235,20 @@ function procVox(f, vals, iso::Real, width, origin, vtsAry::Vector, vertex_store
         (tIx == 0x00 || tIx == 0x0f) && continue
 
         e = tetTri[tIx]
+        v1 = getVertId(f, voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, vertex_store, eps)
+        v2 = getVertId(f, voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, vertex_store, eps)
+        v3 = getVertId(f, voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, vertex_store, eps)
 
         # add the face to the list
-        push!(fcs, FaceType(
-                    getVertId(f, voxEdgeId(i, e[1]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(f, voxEdgeId(i, e[2]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(f, voxEdgeId(i, e[3]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
+        !slivers(v1,v2,v3) && push!(fcs, FaceType(v1,v2,v3))
 
         # bail if there are no more faces
         iszero(e[4]) && continue
-        push!(fcs, FaceType(
-                    getVertId(f, voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(f, voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, vertex_store, eps),
-                    getVertId(f, voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, vertex_store, eps)))
+        v4 = getVertId(f, voxEdgeId(i, e[4]), width, vals, iso, origin, vtsAry, vertex_store, eps)
+        v5 = getVertId(f, voxEdgeId(i, e[5]), width, vals, iso, origin, vtsAry, vertex_store, eps)
+        v6 = getVertId(f, voxEdgeId(i, e[6]), width, vals, iso, origin, vtsAry, vertex_store, eps)
+        !slivers(v4,v5,v6) && push!(fcs, FaceType(v4,v5,v6))
+
     end
 end
 
