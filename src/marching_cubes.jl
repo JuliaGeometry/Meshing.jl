@@ -161,7 +161,7 @@ function _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, ::
 
         find_vertices_interp!(vts, points, iso_vals, cubeindex, method.iso, method.eps)
 
-        offsets = _mc_connectivity[cubeindex]
+        offsets = _mc_connectivity[_mc_eq_mapping[cubeindex]]
 
         # There is atleast one face so we can push it immediately
         push!(fcs, FaceType(fct+offsets[3], fct+offsets[2], fct+offsets[1]))
