@@ -14,10 +14,7 @@ function (::Type{MT})(f::Function, h::HyperRectangle, samples::NTuple{3,T}, meth
 end
 
 function (::Type{MT})(f::Function, h::HyperRectangle, method::AbstractMeshingAlgorithm; samples::NTuple{3,T}=_DEFAULT_SAMPLES)::MT where {MT <: AbstractMesh, T <: Integer}
-    vertex_eltype = promote_type(T, typeof(method.iso), typeof(method.eps))
-    VertType, FaceType = _determine_types(MT,vertex_eltype, default_face_length(method))
-    vts, fcs = isosurface(f, method, VertType, FaceType, samples=samples, origin=VertType(origin(h)), widths=VertType(widths(h)))
-    MT(vts, fcs)::MT
+    MT(f, h, samples, method)
 end
 
 function (::Type{MT})(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; kwargs...) where {MT <: AbstractMesh, T}
