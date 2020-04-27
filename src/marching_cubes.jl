@@ -42,7 +42,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         method.reduceverts && _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
         !method.reduceverts && _mc_create_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
     end
-    vts,fcs
+    return vts, fcs
 end
 
 
@@ -100,7 +100,8 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         !method.reduceverts && _mc_create_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
 
     end
-    vts,fcs
+
+    return vts, fcs
 end
 
 

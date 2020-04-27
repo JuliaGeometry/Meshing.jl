@@ -56,23 +56,25 @@ type of vertex/point and face to use for internal computations.
 
 Preference is given to the types specified by the Mesh call,
 and will default to the `FieldType` for `SignedDistanceField`,
-and Point{3,Float64}/Face{3,Int} for direct function sampling.
+and Point{3,Float64}/TriangleFace{Int} for direct function sampling.
 """
-function _determine_types(meshtype, fieldtype=Float64, facelen=3)
+function _determine_types(pointtype, facetype, fieldtype=Float64, facelen=3)
     # determine the point and face types
     # preference is given to the Mesh types
     # followed by SDF if unspecified
-    if vertextype(meshtype) !== Any
-        VertType = vertextype(meshtype)
+    VertType = if pointtype isa Nothing
+        Point{3, fieldtype}
     else
-        VertType = Point{3, fieldtype}
+        pointtype
     end
-    if facetype(meshtype) !== Any
-        FaceType = facetype(meshtype)
+
+    FaceType = if facetype isa Nothing
+        NgonFace{facelen, Int}
     else
-        FaceType = Face{facelen, Int}
+        facetype
     end
-    VertType, FaceType
+
+    return VertType, FaceType
 end
 
 #

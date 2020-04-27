@@ -166,7 +166,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
         procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex, method.reduceverts)
     end
 
-    vtsAry,fcs
+    return vtsAry, fcs
 end
 
 function isosurface(f::Function, method::MarchingTetrahedra,
@@ -222,5 +222,5 @@ function isosurface(f::Function, method::MarchingTetrahedra,
         procVox(vals, method.iso, i, j, k, nx, ny, scale, origin, vts, vtsAry, fcs, method.eps, cubeindex, method.reduceverts)
     end
 
-    vtsAry,fcs
+    return vtsAry, fcs
 end

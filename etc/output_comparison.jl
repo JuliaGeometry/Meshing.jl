@@ -1,14 +1,14 @@
 
 using Meshing
-using GeometryTypes
+using GeometryBasics
 using LinearAlgebra: dot, norm
 using FileIO
 
 sphere(v) = sqrt(sum(v.^2)) - 1
 
-sdf = SignedDistanceField(sphere, HyperRectangle(Vec(-1,-1,-1.), Vec(2,2,2.)))
+sdf = SignedDistanceField(sphere, Rect(Vec(-1,-1,-1.), Vec(2,2,2.)))
 
-mesh_type = HomogenousMesh{Point{3,Float64}, Face{3,Int}}
+mesh_type = HomogenousMesh{Point{3,Float64}, TriangleFace{Int}}
 
 mc = mesh_type(sdf, MarchingCubes())
 mt = mesh_type(sdf, MarchingTetrahedra())

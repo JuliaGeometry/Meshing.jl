@@ -1,6 +1,6 @@
 using BenchmarkTools
 using Meshing
-using GeometryTypes
+using GeometryBasics
 
 # Define a parent BenchmarkGroup to contain our suite
 const suite = BenchmarkGroup()
@@ -21,7 +21,7 @@ algos_fn = [MarchingCubes(), MarchingTetrahedra(), NaiveSurfaceNets()]
 # Benchmark SDF constructon for SDF and Direct sample comparisons
 #
 
-suite["SDF Construction"]["Torus"] = @benchmarkable SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
+suite["SDF Construction"]["Torus"] = @benchmarkable SignedDistanceField(Rect(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
     (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 end
 
@@ -29,7 +29,7 @@ end
 # Torus Constructions
 #
 
-sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
+sdf_torus = SignedDistanceField(Rect(Vec(-2,-2,-2.),Vec(4,4,4.)),0.05) do v
     (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 end
 
@@ -44,7 +44,7 @@ for algo in algos_sdf
 end
 
 for algo in algos_fn
-    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(fn_torus, HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), $algo)
+    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(fn_torus, Rect(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), $algo)
 end
 
 # If a cache of tuned parameters already exists, use it, otherwise, tune and cache

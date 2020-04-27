@@ -80,10 +80,10 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
         end
         zi += 1
         buf_no = xor(buf_no,1)
-        R[3]=-R[3]
+        R[3] =- R[3]
     end
 
-    vertices, faces
+    return vertices, faces
 end
 
 function isosurface(f::Function, method::NaiveSurfaceNets,
@@ -189,7 +189,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
         R[3]=-R[3]
     end
 
-    vertices, faces
+    return vertices, faces
 end
 
 @inline function _sn_add_verts!(inds, vertices, grid, edge_mask, buffer, m, scale, origin, eps, ::Type{VertType}) where {VertType}
