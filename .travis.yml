@@ -3,9 +3,7 @@ language: julia
 os:
   - linux
 julia:
-  - 1.0
-  - 1.1
-  - nightly
+  - 1
 jobs:
   include:
     - stage: "Documentation"
@@ -23,9 +21,5 @@ branches:
     - master
     - /^release-.*$/
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
-matrix:
-  allow_failures:
-    - julia: nightly
 after_success:
   - julia -e 'using Pkg; import Meshing; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-
