@@ -14,12 +14,11 @@ jobs:
                                                Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
+      
 notifications:
   email: false
-branches:
-  only: # Only kick off CI for master and potential merges to master from within PRs
-    - master
-    - /^release-.*$/
-    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+
+if: branch = master OR tag IS present OR type = pull_request
+
 after_success:
   - julia -e 'using Pkg; import Meshing; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
