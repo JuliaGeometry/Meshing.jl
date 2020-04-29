@@ -48,32 +48,6 @@ Called after `_get_cubeindex`. Determines if a voxel index has triangles.
     cubeindex == 0x00 || cubeindex == 0xff
 end
 
-"""
-    _determine_types(meshtype, fieldtype=Float64, facelen=3)
-
-Given a subtype of AbstractMesh, determine the
-type of vertex/point and face to use for internal computations.
-
-Preference is given to the types specified by the Mesh call,
-and will default to the `FieldType` for `SignedDistanceField`,
-and Point{3,Float64}/Face{3,Int} for direct function sampling.
-"""
-function _determine_types(meshtype, fieldtype=Float64, facelen=3)
-    # determine the point and face types
-    # preference is given to the Mesh types
-    # followed by SDF if unspecified
-    if vertextype(meshtype) !== Any
-        VertType = vertextype(meshtype)
-    else
-        VertType = Point{3, fieldtype}
-    end
-    if facetype(meshtype) !== Any
-        FaceType = facetype(meshtype)
-    else
-        FaceType = Face{facelen, Int}
-    end
-    VertType, FaceType
-end
 
 #
 # General isosurface docstring
