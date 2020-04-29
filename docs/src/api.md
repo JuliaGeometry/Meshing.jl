@@ -23,7 +23,57 @@ points,faces = isosurface(A, MarchingCubes(iso=1))
 ```
 
 
+## Quick Start - GeometryBasics
+
+Meshing is well-integrated with [GeometryBasics.jl](https://github.com/JuliaGeometry/GeometryBasics.jl)  by extending the [mesh constructors](http://juliageometry.github.io/GeometryBasics.jl/latest/types.html#Meshes-1) for convience.
+
+The algorithms operate on a `Function`, `AbstractArray`, or `SignedDistanceField` and output a concrete `AbstractMesh`.
+For example, we can use the GeometryBasics API as follows, using `Rect` to specify the bounds:
+
+```
+using Meshing
+using GeometryBasics
+using LinearAlgebra: dot, norm
+using FileIO
+
+# Mesh an equation of sphere in the Axis-Aligned Bounding box starting
+# at -1,-1,-1 and widths of 2,2,2 using Marching Cubes
+m = GLNormalMesh(Rect(Vec(-1,-1,-1.), Vec(2,2,2.)), MarchingCubes()) do v
+    sqrt(sum(dot(v,v))) - 1
+end
+
+# save the Sphere as a PLY file
+save("sphere.ply",m)
+```
+
+For a full listing of concrete `AbstractMesh` types see [GeometryBasics.jl mesh documentation](http://juliageometry.github.io/GeometryBasics.jl/latest/types.html#Meshes-1).
+
+Alternatively, we can use the `isosurface` API to sample a function:
+
+```
+using Meshing
+using LinearAlgebra
+using StaticArrays
+
+points, faces = isosurface(origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
+    sqrt(sum(dot(v,v))) - 1
+end
+
+# by default MarchingCubes() is used, but we may specify a different algorithm as follows
+
+points, faces = isosurface(MarchingTetrahedra(), origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
+    sqrt(sum(dot(v,v))) - 1
+end
+```
+
 ## Quick Start - GeometryTypes
+
+
+!!! warning
+
+    GeometryTypes is in the process of being deprecated across the Julia ecosystem.
+    GeometryBasics is the recommended replacement.
+
 
 Meshing is well-integrated with [GeometryTypes.jl](https://github.com/JuliaGeometry/GeometryTypes.jl)  by extending the [mesh constructors](http://juliageometry.github.io/GeometryTypes.jl/latest/types.html#Meshes-1) for convience.
 
@@ -108,6 +158,25 @@ Meshing.AbstractMeshingAlgorithm
 ```@docs
 isosurface
 ```
+
+## GeometryBasics
+
+Meshing extends the mesh types in GeometryBasics for convenience and use with visualization tools such as Makie and MeshCat.
+Any instance of a `Mesh` may be created as follows:
+
+```
+    mesh(df::SignedDistanceField{3,ST,FT}, method::AbstractMeshingAlgorithm; pointtype=nothing, facetype=nothing) where {ST, FT}
+    mesh(f::Function, h::Rect, samples::NTuple{3,T}, method::AbstractMeshingAlgorithm; pointtype=nothing, facetype=nothing) where {T <: Integer}
+    mesh(f::Function, h::Rect, method::AbstractMeshingAlgorithm; pointtype=nothing, facetype=nothing, samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer}
+    mesh(volume::AbstractArray{T, 3}, method::AbstractMeshingAlgorithm; pointtype=nothing, facetype=nothing, vargs...) where {T}
+```
+
+With the GeometryBasics API, the bounding box is specified by a `Rect`, or keyword specified `origin` and `widths`.
+
+Some notes on pointtype and facetype. They can be used to create a mesh with the desired point & face types.
+If they're left at nothing, the element type best matching the method and signed distancefield is used.
+Both the element type of the volume, element type of the `vertextype`, and type of `iso` in the `AbstractMeshingAlgorithm`
+are all promoted. This also allows the use of auto differentiation tools on the isosurface construction.
 
 ## GeometryTypes
 
