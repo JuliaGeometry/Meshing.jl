@@ -2,6 +2,8 @@ using BenchmarkTools
 using Meshing
 using GeometryBasics
 
+import GeometryBasics: mesh
+
 # Define a parent BenchmarkGroup to contain our suite
 const suite = BenchmarkGroup()
 suite["SDF Construction"] = BenchmarkGroup()
@@ -40,11 +42,11 @@ fn_torus(v) = (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25 # torus
 #
 
 for algo in algos_sdf
-    suite["SDF Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(sdf_torus, $algo)
+    suite["SDF Mesh"][string(typeof(algo))] = @benchmarkable mesh(sdf_torus, $algo)
 end
 
 for algo in algos_fn
-    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable HomogenousMesh(fn_torus, Rect(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), $algo)
+    suite["Function Mesh"][string(typeof(algo))] = @benchmarkable mesh(fn_torus, Rect(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), $algo)
 end
 
 # If a cache of tuned parameters already exists, use it, otherwise, tune and cache
