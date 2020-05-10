@@ -30,11 +30,6 @@ end
     @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
     @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})
     @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
-    dt = Meshing._determine_types_gb
-    @test dt(GB.Point3{Float64}, GB.TriangleFace{Int}) == (GB.Point{3,Float64}, GB.TriangleFace{Int64})
-    @test dt(GB.Point3f0, GB.GLTriangleFace) == (GB.Point3f0, GB.GLTriangleFace)
-    @test dt(nothing, nothing, Float16) == (GB.Point3{Float16}, GB.TriangleFace{Int64})
-    @test dt(nothing, nothing, Float64, 4) == (GB.Point{3,Float64}, GB.QuadFace{Int64})
 end
 
 @testset "surface nets" begin
