@@ -17,7 +17,7 @@ algo = MarchingCubes(iso=100, insidepositive=true)
 # algo = NaiveSurfaceNets(iso=100, insidepositive=true)
 
 # generate the mesh using marching cubes
-mc = HomogenousMesh{Point{3,Float32},TriangleFace{Int}}(ctacardio, algo)
+mc = Mesh(ctacardio, algo)
 
 # we can call isosurface to get a vector of points and vector of faces indexing to the points
 # vertices, faces = isosurface(ctacardio, algo, Point{3,Float32}, TriangleFace{Int})
@@ -30,8 +30,9 @@ using GeometryBasics
 gyroid(v) = cos(v[1])*sin(v[2])+cos(v[2])*sin(v[3])+cos(v[3])*sin(v[1])
 gyroid_shell(v) = max(gyroid(v)-0.4,-gyroid(v)-0.4)
 
-# generate directly using GeometryBasics API, normals are computed by GeometryBasics
-gy_mesh = GLNormalMesh(gyroid_shell, Rect(Vec(0,0,0),Vec(pi*4,pi*4,pi*4)),
+# generate directly using GeometryBasics API
+# Rect specifies the sampling intervals
+gy_mesh = Mesh(gyroid_shell, Rect(Vec(0,0,0),Vec(pi*4,pi*4,pi*4)),
                        MarchingCubes(), samples=(50,50,50))
 
 save(&quot;gyroid.ply&quot;, gy_mesh)
@@ -39,4 +40,4 @@ save(&quot;gyroid.ply&quot;, gy_mesh)
 # view with Makie
 import Makie
 using LinearAlgebra
-Makie.mesh(gy_mesh, color=[norm(v) for v in gy_mesh.vertices])</code></pre><p><img src="../img/gyroid.png" alt="gyroid"/></p><footer><hr/><a class="previous" href="../api/"><span class="direction">Previous</span><span class="title">API</span></a><a class="next" href="../internals/"><span class="direction">Next</span><span class="title">Internals</span></a></footer></article></body></html>
+Makie.mesh(gy_mesh, color=[norm(v) for v in coordinates(gy_mesh)])</code></pre><p><img src="../img/gyroid.png" alt="gyroid"/></p><footer><hr/><a class="previous" href="../api/"><span class="direction">Previous</span><span class="title">API</span></a><a class="next" href="../internals/"><span class="direction">Next</span><span class="title">Internals</span></a></footer></article></body></html>
