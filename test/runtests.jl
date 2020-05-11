@@ -30,11 +30,6 @@ end
     @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
     @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})
     @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
-    dt = Meshing._determine_types_gb
-    @test dt(GB.Point3{Float64}, GB.TriangleFace{Int}) == (GB.Point{3,Float64}, GB.TriangleFace{Int64})
-    @test dt(GB.Point3f0, GB.GLTriangleFace) == (GB.Point3f0, GB.GLTriangleFace)
-    @test dt(nothing, nothing, Float16) == (GB.Point3{Float16}, GB.TriangleFace{Int64})
-    @test dt(nothing, nothing, Float64, 4) == (GB.Point{3,Float64}, GB.QuadFace{Int64})
 end
 
 @testset "surface nets" begin
@@ -354,7 +349,7 @@ end
 @testset "GeometryBasics API" begin
     @testset "vararg passing" begin
         A = rand(20,20,20)
-        m = GB.mesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
+        m = GB.Mesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
         @test m isa GB.Mesh
     end
 end
