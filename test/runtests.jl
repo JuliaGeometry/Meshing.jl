@@ -349,7 +349,7 @@ end
 @testset "GeometryBasics API" begin
     @testset "vararg passing" begin
         A = rand(20,20,20)
-        m = GB.mesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
+        m = GB.Mesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
         @test m isa GB.Mesh
     end
 end
