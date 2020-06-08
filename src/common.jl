@@ -82,7 +82,7 @@ Defaults:
 
 If `isosurface` is called without a specified algorithm, it will default to MarchingCubes.
 
-If a subtype of `AbstractArray` is specified, the mesh will be default be centered at the origin between
+If a subtype of `AbstractArray` is specified, the mesh will by default be centered at the origin between
 (-1,1) in each axis. This may be overridden by specifying a new origin and widths for the axis-aligned bounding box
 using keywords of the same names. For example if we want our vertices in the range of (0,1), we can specify `origin=SVector(0,0,0)`
 and `widths = SVector(1,1,1)`.
