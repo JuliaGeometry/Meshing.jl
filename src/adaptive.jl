@@ -5,7 +5,7 @@
 # this is designed to avoid allocation of a full octtree and generate a mesh
 # while sampling
 
-function vertices(h::HyperRectangle, ::Type{SV}) where SV
+function vertices(h::GB.HyperRectangle, ::Type{SV}) where SV
     z = zero(eltype(SV))
     @inbounds begin
         o = SV(h.origin[1],h.origin[2],h.origin[3])
@@ -21,7 +21,7 @@ function vertices(h::HyperRectangle, ::Type{SV}) where SV
     end
 end
 
-function vertices_mt(h::HyperRectangle, ::Type{SV}) where SV
+function vertices_mt(h::GB.HyperRectangle, ::Type{SV}) where SV
     z = zero(eltype(SV))
     @inbounds begin
         o = SV(h.origin[1],h.origin[2],h.origin[3])
@@ -49,7 +49,7 @@ function interpolate_mt(c)
     end
 end
 
-function face_center_vertices(h::HyperRectangle{N,T}) where{N,T}
+function face_center_vertices(h::GB.HyperRectangle{N,T}) where{N,T}
     SV = SVector{3,T}
     z = zero(T)
     @inbounds begin
@@ -67,9 +67,9 @@ function face_center_vertices(h::HyperRectangle{N,T}) where{N,T}
     end
 end
 
-center(rect::HyperRectangle) = rect.origin + 0.5 * rect.widths
+center(rect::GB.HyperRectangle) = rect.origin + 0.5 * rect.widths
 
-function octsplit(h::HyperRectangle)
+function octsplit(h::GB.HyperRectangle)
     ET = eltype(h.origin)
     VT = Vec{3,ET}
     z = zero(ET)
@@ -77,14 +77,14 @@ function octsplit(h::HyperRectangle)
     nw = h.widths.*ET(0.5)
     no = h.origin
     @inbounds begin
-        (HyperRectangle(no, nw),
-        HyperRectangle(no.+nw, nw),
-        HyperRectangle(no.+VT(nw[1],z,z), nw),
-        HyperRectangle(no.+VT(z,nw[2],z), nw),
-        HyperRectangle(no.+VT(z,z,nw[3]), nw),
-        HyperRectangle(no.+VT(nw[1],nw[2],z), nw),
-        HyperRectangle(no.+VT(nw[1],z,nw[3]), nw),
-        HyperRectangle(no.+VT(z,nw[2],nw[3]), nw))
+        (GB.HyperRectangle(no, nw),
+        GB.HyperRectangle(no.+nw, nw),
+        GB.HyperRectangle(no.+VT(nw[1],z,z), nw),
+        GB.HyperRectangle(no.+VT(z,nw[2],z), nw),
+        GB.HyperRectangle(no.+VT(z,z,nw[3]), nw),
+        GB.HyperRectangle(no.+VT(nw[1],nw[2],z), nw),
+        GB.HyperRectangle(no.+VT(nw[1],z,nw[3]), nw),
+        GB.HyperRectangle(no.+VT(z,nw[2],nw[3]), nw))
     end
 end
 
@@ -147,7 +147,7 @@ function isosurface(f::Function, method::AdaptiveMarchingCubes, ::Type{VertType}
     fcs = FaceType[]
 
     # refinement queue
-    refinement_queue = HyperRectangle{3,ET}[HyperRectangle{3,ET}(origin,widths)]
+    refinement_queue = GB.HyperRectangle{3,ET}[GB.HyperRectangle{3,ET}(origin,widths)]
 
     val_store = Dict{NTuple{3,ET},ET}();
 
@@ -263,8 +263,8 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
 
     # refinement queue
     # initialize with depth two
-    refinement_queue = HyperRectangle{3,ET}[]
-    for h in octsplit(HyperRectangle{3,ET}(origin,widths))
+    refinement_queue = GB.HyperRectangle{3,ET}[]
+    for h in octsplit(GB.HyperRectangle{3,ET}(origin,widths))
         append!(refinement_queue,octsplit(h))
     end
 
