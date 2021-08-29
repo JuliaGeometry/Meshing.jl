@@ -10,7 +10,6 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.0'
           - '1.6'
           - 'nightly'
         os:
@@ -49,12 +48,6 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - run: |
-          julia --project=docs -e '
-            using Documenter: DocMeta, doctest
-            using Meshing
-            DocMeta.setdocmeta!(Meshing, :DocTestSetup, :(using Meshing); recursive=true)
-            doctest(Meshing)'
       - run: julia --project=docs docs/make.jl
         env:
           JULIA_PKG_SERVER: ""
