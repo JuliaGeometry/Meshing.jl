@@ -5,7 +5,7 @@
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaGeometry.github.io/Meshing.jl/dev)
 
 ## Build
-[![Build Status](https://travis-ci.org/JuliaGeometry/Meshing.jl.svg)](https://travis-ci.org/JuliaGeometry/Meshing.jl)
+[![CI](https://github.com/JuliaGeometry/Meshing.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/JuliaGeometry/Meshing.jl/actions/workflows/CI.yml)
 [![codecov.io](http://codecov.io/github/JuliaGeometry/Meshing.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaGeometry/Meshing.jl?branch=master)
 
 ## About
