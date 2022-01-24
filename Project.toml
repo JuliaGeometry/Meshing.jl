@@ -3,13 +3,9 @@ uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
 version = "0.5.7" # next version needs to be 0.6.0 since we bumped julia
 
 [deps]
-GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-GeometryBasics = "0.2, 0.3, 0.4"
-GeometryTypes = "0.6,0.7,0.8"
 StaticArrays = "0.10, 0.11, 0.12, 1.0, 1.1, 1.2"
 julia = "1.3"
 
