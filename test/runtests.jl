@@ -1,8 +1,5 @@
 using Meshing
 using Test
-using GeometryTypes
-import GeometryBasics
-const GB = GeometryBasics
 using ForwardDiff
 using StaticArrays
 using Statistics: mean
@@ -22,52 +19,42 @@ algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
     end
 end
 
-@testset "type helpers" begin
-    dt = Meshing._determine_types
-    @test dt(HomogenousMesh) == (Point{3,Float64}, Face{3,Int64})
-    @test dt(GLNormalMesh) == (Point{3,Float32}, Face{3,OffsetInteger{-1,UInt32}})
-    @test dt(HomogenousMesh, Float16) == (Point{3,Float16}, Face{3,Int64})
-    @test dt(HomogenousMesh{Point{3, Float64}, Face{3, UInt32}}) == (Point{3,Float64}, Face{3,UInt32})
-    @test dt(HomogenousMesh{Point{3, Float32}, Face{3, UInt32}}, Float64) == (Point{3,Float32}, Face{3,UInt32})
-    @test dt(HomogenousMesh, Float64, 4) == (Point{3,Float64}, Face{4,Int64})
-end
-
-@testset "surface nets" begin
-    sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
-    end
-    sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
-        (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
-    end
-
-    snf_torus = HomogenousMesh(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), NaiveSurfaceNets()) do v
-        (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
-    end
-
-    snf_sphere = HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (21,21,21), NaiveSurfaceNets()) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
-    end
-
-    # test convience constructors
-    HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
-    end
-    HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), samples=(5,5,5)) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
-    end
-
-    sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
-    torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
-    @test length(vertices(sphere)) == 1832
-    @test length(vertices(torus)) == 5532
-    @test length(faces(sphere)) == 1830
-    @test length(faces(torus)) == 5532
-
-    @test length(vertices(sphere)) == length(vertices(snf_sphere))
-    @test length(vertices(torus)) == length(vertices(snf_torus))
-    @test length(faces(sphere)) == length(faces(snf_sphere))
-    @test length(faces(torus)) == length(faces(snf_torus))
-end
+#@testset "surface nets" begin
+#    sdf_sphere = SignedDistanceField(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.))) do v
+#        sqrt(sum(dot(v,v))) - 1 # sphere
+#    end
+#    sdf_torus = SignedDistanceField(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), 0.05) do v
+#        (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+#    end
+#
+#    snf_torus = HomogenousMesh(HyperRectangle(Vec(-2,-2,-2.),Vec(4,4,4.)), (81,81,81), NaiveSurfaceNets()) do v
+#        (sqrt(v[1]^2+v[2]^2)-0.5)^2 + v[3]^2 - 0.25
+#    end
+#
+#    snf_sphere = HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), (21,21,21), NaiveSurfaceNets()) do v
+#        sqrt(sum(dot(v,v))) - 1 # sphere
+#    end
+#
+#    # test convience constructors
+#    HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets()) do v
+#        sqrt(sum(dot(v,v))) - 1 # sphere
+#    end
+#    HomogenousMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), NaiveSurfaceNets(), samples=(5,5,5)) do v
+#        sqrt(sum(dot(v,v))) - 1 # sphere
+#    end
+#
+#    sphere = HomogenousMesh(sdf_sphere, NaiveSurfaceNets())
+#    torus = HomogenousMesh(sdf_torus, NaiveSurfaceNets())
+#    @test length(vertices(sphere)) == 1832
+#    @test length(vertices(torus)) == 5532
+#    @test length(faces(sphere)) == 1830
+#    @test length(faces(torus)) == 5532
+#
+#    @test length(vertices(sphere)) == length(vertices(snf_sphere))
+#    @test length(vertices(torus)) == length(vertices(snf_torus))
+#    @test length(faces(sphere)) == length(faces(snf_sphere))
+#    @test length(faces(torus)) == length(faces(snf_torus))
+#end
 
 
 @testset "noisy spheres" begin
@@ -86,21 +73,23 @@ end
     #
     lambda = N-2*sigma # isovalue
 
-    msh = HomogenousMesh(distance, MarchingTetrahedra(lambda))
+    vts1, fcs1 = isosurface(distance, MarchingTetrahedra(lambda))
 
-    s2 = SignedDistanceField(HyperRectangle(Vec(0,0,0.),Vec(1,1,1.))) do v
+    vts2, fcs2 = isosurface(origin=SVector(0,0,0.), widths=SVector(1,1,1.)) do v
         sqrt(sum(dot(v,v))) - 1 # sphere
     end
 
-    msh = HomogenousMesh(s2, MarchingTetrahedra())
-    @test length(vertices(msh)) == 973
-    @test length(faces(msh)) == 1830
+    @test length(vts1) > 0
+    @test length(fcs1) > 0
+    @test length(vts2) == 4947
+    @test length(fcs2) == 2473
+
 end
 
 @testset "vertex interpolation" begin
-    @test Meshing.vertex_interp(0, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,0.5,0)
-    @test Meshing.vertex_interp(-1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,0,0)
-    @test Meshing.vertex_interp(1, Vec(0,0,0), Vec(0,1,0), -1, 1) == Vec(0,1,0)
+    @test Meshing.vertex_interp(0, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,0.5,0)
+    @test Meshing.vertex_interp(-1, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,0,0)
+    @test Meshing.vertex_interp(1, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,1,0)
 end
 
 @testset "marching cubes" begin
@@ -334,22 +323,5 @@ end
     @testset "Defaults" begin
         A = rand(10,10,10)
         @test isosurface(A) == isosurface(A, MarchingCubes())
-    end
-end
-
-@testset "GeometryTypes API" begin
-    @testset "vararg passing" begin
-        A = rand(20,20,20)
-        m = GLNormalMesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
-        @test typeof(m) == GLNormalMesh
-    end
-
-end
-
-@testset "GeometryBasics API" begin
-    @testset "vararg passing" begin
-        A = rand(20,20,20)
-        m = GB.Mesh(A,MarchingTetrahedra(1.0),origin=Point(Float32(0),Float32(0),Float32(0)),widths=Point(Float32(1),Float32(1),Float32(1)))
-        @test m isa GB.Mesh
     end
 end
