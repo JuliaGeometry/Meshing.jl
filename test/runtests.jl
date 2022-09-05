@@ -148,16 +148,32 @@ end
 @testset "marching tetrahedra" begin
     a1 = MarchingTetrahedra()
     a2 = MarchingTetrahedra(reduceverts=false)
-    m1 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a1, samples=(21,21,21)) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
+    let
+        m1 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a1, samples=(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        m2 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a2, samples=(21,21,21)) do v
+            sqrt(sum(dot(v,v))) - 1 # sphere
+        end
+        @test length(m1.vertices) == 5582
+        @test length(m2.vertices) == 33480
+        @test length(m1.faces) == 11160
+        @test length(m2.faces) == length(m1.faces)
     end
-    m2 = SimpleMesh(HyperRectangle(Vec(-1,-1,-1.),Vec(2,2,2.)), a2, samples=(21,21,21)) do v
-        sqrt(sum(dot(v,v))) - 1 # sphere
+
+    # When zero set is not completely within the box.
+    let
+        m1 = SimpleMesh(HyperRectangle(Vec(0,0,40), Vec(50,50,60)), a1, samples=(2,2,2)) do v
+            v[3] - 50 # Plane at z = 50.
+        end
+        m2 = SimpleMesh(HyperRectangle(Vec(0,0,40), Vec(50,50,60)), a2, samples=(2,2,2)) do v
+            v[3] - 50 # Plane at z = 50.
+        end
+        @test length(m1.vertices) == 9
+        @test length(m2.vertices) == 24
+        @test length(m1.faces) == 8
+        @test length(m2.faces) == length(m1.faces)
     end
-    @test length(m1.vertices) == 5582
-    @test length(m2.vertices) == 33480
-    @test length(m1.faces) == 11160
-    @test length(m2.faces) == length(m1.faces)
 end
 
 @testset "sign flips" begin
