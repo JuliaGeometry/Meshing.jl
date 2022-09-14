@@ -186,7 +186,7 @@ function isosurface(f::Function, method::MarchingTetrahedra,
     zv = zero(eltype(VertType))
     vals = (zv,zv,zv,zv,zv,zv,zv,zv)
 
-    @inbounds for k = 1:nz, j = 1:ny, i = 1:nx
+    @inbounds for k = 1:nz-1, j = 1:ny-1, i = 1:nx-1
         points = (VertType(i-1,j-1,k-1).* scale .+ origin,
                   VertType(i-1,j  ,k-1).* scale .+ origin,
                   VertType(i  ,j  ,k-1).* scale .+ origin,
