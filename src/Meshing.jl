@@ -1,7 +1,5 @@
 module Meshing
 
-using StaticArrays
-
 
 """
     _DEFAULT_SAMPLES = (24,24,24)

@@ -2,8 +2,8 @@
 #Look up Table
 include("lut/mc.jl")
 
-function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
+function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{VertType}=NTuple{3,Float64}, ::Type{FaceType}=NTuple{3, Int};
+                    origin=(-1,-1,-1), widths=(2,2,2)) where {T, VertType, FaceType}
     nx, ny, nz = size(sdf)
 
     # we subtract one from the length along each axis because
@@ -46,14 +46,18 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
 end
 
 
-function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2), samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
+function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=NTuple{3,Float64}, ::Type{FaceType}=NTuple{3, Int};
+                    origin=(-1,-1,-1), widths=(2,2,2), samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, VertType, FaceType}
 
     nx, ny, nz = samples[1], samples[2], samples[3]
 
     # we subtract one from the length along each axis because
     # an NxNxN SDF has N-1 cells on each axis
-    s = VertType(widths[1]/(nx-1), widths[2]/(ny-1), widths[3]/(nz-1))
+    s = if VertType <:Tuple
+        (widths[1]/(nx-1), widths[2]/(ny-1), widths[3]/(nz-1))
+    else
+        VertType(widths[1]/(nx-1), widths[2]/(ny-1), widths[3]/(nz-1))
+    end
 
     # arrays for vertices and faces
     vts = VertType[]
@@ -235,12 +239,23 @@ end
 Returns a tuple of 8 points corresponding to each corner of a cube
 """
 @inline function mc_vert_points(xi,yi,zi, scale, origin, ::Type{VertType}) where VertType
-    (VertType(xi-1,yi-1,zi-1) .* scale .+ origin,
-     VertType(xi  ,yi-1,zi-1) .* scale .+ origin,
-     VertType(xi  ,yi  ,zi-1) .* scale .+ origin,
-     VertType(xi-1,yi  ,zi-1) .* scale .+ origin,
-     VertType(xi-1,yi-1,zi  ) .* scale .+ origin,
-     VertType(xi  ,yi-1,zi  ) .* scale .+ origin,
-     VertType(xi  ,yi  ,zi  ) .* scale .+ origin,
-     VertType(xi-1,yi  ,zi  ) .* scale .+ origin)
+    if VertType <: Tuple
+        ((xi-1,yi-1,zi-1) .* scale .+ origin,
+        (xi  ,yi-1,zi-1) .* scale .+ origin,
+        (xi  ,yi  ,zi-1) .* scale .+ origin,
+        (xi-1,yi  ,zi-1) .* scale .+ origin,
+        (xi-1,yi-1,zi  ) .* scale .+ origin,
+        (xi  ,yi-1,zi  ) .* scale .+ origin,
+        (xi  ,yi  ,zi  ) .* scale .+ origin,
+        (xi-1,yi  ,zi  ) .* scale .+ origin)
+    else
+        (VertType(xi-1,yi-1,zi-1) .* scale .+ origin,
+        VertType(xi  ,yi-1,zi-1) .* scale .+ origin,
+        VertType(xi  ,yi  ,zi-1) .* scale .+ origin,
+        VertType(xi-1,yi  ,zi-1) .* scale .+ origin,
+        VertType(xi-1,yi-1,zi  ) .* scale .+ origin,
+        VertType(xi  ,yi-1,zi  ) .* scale .+ origin,
+        VertType(xi  ,yi  ,zi  ) .* scale .+ origin,
+        VertType(xi-1,yi  ,zi  ) .* scale .+ origin)
+    end
 end

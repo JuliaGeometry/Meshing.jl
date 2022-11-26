@@ -27,7 +27,7 @@ regardless of which of its neighboring voxels is asking for it) in order
 for vertex sharing to be implemented properly.
 """
 @inline function vertId(e, x, y, z, nx, ny)
-    dx, dy, dz = voxCrnrPosInt[voxEdgeCrnrs[e][1]]
+    dx, dy, dz = VoxCrnrPos[voxEdgeCrnrs[e][1]]
     voxEdgeDir[e]+7*(x-0x01+dx+nx*(y-0x01+dy+ny*(z-0x01+dz)))
 end
 
@@ -47,10 +47,14 @@ corners (thereby preventing degeneracies).
     tgtVal  = vals[ixs[2]]
     a       = min(max((iso-srcVal)/(tgtVal-srcVal), eps), one(T)-eps)
     b       = one(T)-a
-    c1 = voxCrnrPos(VertType)[ixs[1]]
-    c2 = voxCrnrPos(VertType)[ixs[2]]
+    c1 = VoxCrnrPos[ixs[1]]
+    c2 = VoxCrnrPos[ixs[2]]
 
-    ((VertType(x,y,z) + c1 .* b + c2.* a) .- 1) .* scale .+ origin
+    if VertType <: Tuple
+        (((x,y,z) .+ c1 .* b .+ c2.* a) .- 1) .* scale .+ origin
+    else
+        ((VertType(x,y,z) .+ c1 .* b .+ c2.* a) .- 1) .* scale .+ origin
+    end
 end
 
 """
@@ -121,22 +125,34 @@ function procVox(vals, iso::Real, x, y, z, nx, ny, scale, origin,
         e = tetTri[tIx]
 
         # add the face to the list
-        push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
-                    getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
-                    getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
+        if FaceType <: Tuple
+            push!(fcs, (getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
 
-        # bail if there are no more faces
-        iszero(e[4]) && continue
-        push!(fcs, FaceType(
-                    getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
-                    getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
-                    getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
+            # bail if there are no more faces
+            iszero(e[4]) && continue
+            push!(fcs, (getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
+        else
+            push!(fcs, FaceType(
+                getVertId(voxEdgeId(i, e[1]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                getVertId(voxEdgeId(i, e[2]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                getVertId(voxEdgeId(i, e[3]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
+
+            # bail if there are no more faces
+            iszero(e[4]) && continue
+            push!(fcs, FaceType(
+                        getVertId(voxEdgeId(i, e[4]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[5]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts),
+                        getVertId(voxEdgeId(i, e[6]), x, y, z, nx, ny, vals, iso, scale, origin, vts, vtsAry, eps, reduceverts)))
+        end
     end
 end
 
-function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2)) where {T, VertType, FaceType}
+function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type{VertType}=NTuple{3,Float64}, ::Type{FaceType}=NTuple{3, Int};
+                    origin=(-1,-1,-1), widths=(2,2,2)) where {T, VertType, FaceType}
 
     vts    = Dict{Int, Int}()
     fcs    = FaceType[]
@@ -170,8 +186,8 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
 end
 
 function isosurface(f::Function, method::MarchingTetrahedra,
-                    ::Type{VertType}=SVector{3,Float64}, ::Type{FaceType}=SVector{3, Int};
-                    origin=VertType(-1,-1,-1), widths=VertType(2,2,2),
+                    ::Type{VertType}=NTuple{3,Float64}, ::Type{FaceType}=NTuple{3, Int};
+                    origin=(-1,-1,-1), widths=(2,2,2),
                     samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T, VertType, FaceType}
 
     vts    = Dict{Int, Int}()
@@ -187,14 +203,26 @@ function isosurface(f::Function, method::MarchingTetrahedra,
     vals = (zv,zv,zv,zv,zv,zv,zv,zv)
 
     @inbounds for k = 1:nz, j = 1:ny, i = 1:nx
-        points = (VertType(i-1,j-1,k-1).* scale .+ origin,
-                  VertType(i-1,j  ,k-1).* scale .+ origin,
-                  VertType(i  ,j  ,k-1).* scale .+ origin,
-                  VertType(i  ,j-1,k-1).* scale .+ origin,
-                  VertType(i-1,j-1,k  ).* scale .+ origin,
-                  VertType(i-1,j  ,k  ).* scale .+ origin,
-                  VertType(i  ,j  ,k  ).* scale .+ origin,
-                  VertType(i  ,j-1,k  ).* scale .+ origin)
+        points = if VertType <: Tuple
+            ((i-1,j-1,k-1).* scale .+ origin,
+                (i-1,j  ,k-1).* scale .+ origin,
+                (i  ,j  ,k-1).* scale .+ origin,
+                (i  ,j-1,k-1).* scale .+ origin,
+                (i-1,j-1,k  ).* scale .+ origin,
+                (i-1,j  ,k  ).* scale .+ origin,
+                (i  ,j  ,k  ).* scale .+ origin,
+                (i  ,j-1,k  ).* scale .+ origin)
+        else
+            (VertType(i-1,j-1,k-1).* scale .+ origin,
+            VertType(i-1,j  ,k-1).* scale .+ origin,
+            VertType(i  ,j  ,k-1).* scale .+ origin,
+            VertType(i  ,j-1,k-1).* scale .+ origin,
+            VertType(i-1,j-1,k  ).* scale .+ origin,
+            VertType(i-1,j  ,k  ).* scale .+ origin,
+            VertType(i  ,j  ,k  ).* scale .+ origin,
+            VertType(i  ,j-1,k  ).* scale .+ origin)
+        end
+
         if i == 1
             vals = (f(points[1]),
                     f(points[2]),

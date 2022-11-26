@@ -1,6 +1,6 @@
 name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
-version = "0.5.7" # next version needs to be 0.6.0 since we bumped julia
+version = "0.5.7"
 
 [compat]
 julia = "1"
@@ -10,6 +10,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [targets]
-test = ["ForwardDiff", "LinearAlgebra", "Statistics", "Test"]
+test = ["ForwardDiff", "LinearAlgebra", "Statistics", "StaticArrays", "Test"]
