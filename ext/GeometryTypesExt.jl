@@ -1,3 +1,9 @@
+module GeometryTypesExt
+
+using Meshing: AbstractMeshingAlgorithm, _DEFAULT_SAMPLES, isosurface, default_face_length
+using GeometryTypes
+
+const GT = GeometryTypes
 
 """
 _determine_types(meshtype, fieldtype=Float64, facelen=3)
@@ -25,8 +31,6 @@ function _determine_types(meshtype, fieldtype=Float64, facelen=3)
     end
     VertType, FaceType
 end
-
-
 
 
 function (::Type{MT})(df::GT.SignedDistanceField{3,ST,FT},
@@ -62,4 +66,6 @@ function (::Type{MT})(volume::AbstractArray{T, 3},
     VertType, FaceType = _determine_types(MT,vertex_eltype, default_face_length(method))
     vts, fcs = isosurface(volume, method, VertType, FaceType; kwargs...)
     MT(vts, fcs)::MT
+end
+
 end
