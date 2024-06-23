@@ -14,9 +14,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    method.reduceverts && sizehint!(vts, mt*mt*5)
-    !method.reduceverts && sizehint!(vts, mt*mt*6)
-    sizehint!(fcs, mt*mt*2)
+
     @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1
 
 
@@ -59,9 +57,7 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
     vts = VertType[]
     fcs = FaceType[]
     mt = max(nx,ny,nz)
-    method.reduceverts && sizehint!(vts, mt*mt*5)
-    !method.reduceverts && sizehint!(vts, mt*mt*6)
-    sizehint!(fcs, mt*mt*2)
+
     zv = zero(eltype(VertType))
     iso_vals = (zv,zv,zv,zv,zv,zv,zv,zv)
     @inbounds for zi = 1:nz-1, yi = 1:ny-1, xi = 1:nx-1

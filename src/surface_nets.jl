@@ -21,9 +21,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
     vertices = VertType[]
     faces = FaceType[]
 
-    sizehint!(vertices,ceil(Int,maximum(dims)^2))
-    sizehint!(faces,ceil(Int,maximum(dims)^2))
-
     n = 0
     R = Array{Int}([1, (dims[1]+1), (dims[1]+1)*(dims[2]+1)])
     buf_no = 1
@@ -96,8 +93,6 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
     vertices = VertType[]
     faces = FaceType[]
 
-    sizehint!(vertices,ceil(Int,maximum(samples)^2))
-    sizehint!(faces,ceil(Int,maximum(samples)^2))
 
     R = Array{Int}([1, (samples[1]+1), (samples[1]+1)*(samples[2]+1)])
     buf_no = 1

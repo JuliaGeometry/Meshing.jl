@@ -141,9 +141,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
     vts    = Dict{Int, Int}()
     fcs    = FaceType[]
     vtsAry = VertType[]
-    sizehint!(vts, div(length(sdf),8))
-    sizehint!(vtsAry, div(length(sdf),8))
-    sizehint!(fcs, div(length(sdf),4))
+
     # process each voxel
     scale = widths ./ VertType(size(sdf) .- 1)
     nx::Int, ny::Int, nz::Int = size(sdf)
@@ -177,9 +175,7 @@ function isosurface(f::Function, method::MarchingTetrahedra,
     vts    = Dict{Int, Int}()
     fcs    = FaceType[]
     vtsAry = VertType[]
-    sizehint!(vts, div(prod(samples),8))
-    sizehint!(vtsAry, div(prod(samples),8))
-    sizehint!(fcs, div(prod(samples),4))
+
     # process each voxel
     scale = widths ./ (VertType(samples...) .-1)
     nx::Int, ny::Int, nz::Int = samples
