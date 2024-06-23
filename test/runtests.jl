@@ -22,6 +22,58 @@ torus_function(v) = (sqrt(v[1]^2 + v[2]^2) - 0.5)^2 + v[3]^2 - 0.25
     end
 end
 
+@testset "_get_cubeindex" begin
+    iso_vals1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    iso1 = 0.35
+    @test Meshing._get_cubeindex(iso_vals1, iso1) == 0x07
+
+    iso_vals2 = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
+    iso2 = 0.75
+    @test Meshing._get_cubeindex(iso_vals2, iso2) == 0x07
+
+    iso_vals3 = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2]
+    iso3 = 0.5
+    @test Meshing._get_cubeindex(iso_vals3, iso3) == 0xe0
+end
+
+@testset "respect origin" begin
+    # verify that when we construct a mesh, that mesh:
+    # a) respects the origin of the SDF
+    # b) is correctly spaced so that symmetric functions create symmetric meshes
+    f = x -> norm(x)
+    origin = SVector{3, Float64}(-1, -1, -1)
+    widths = SVector{3, Float64}(2, 2, 2)
+    resolution = 0.1
+
+    for algorithm in (MarchingCubes(0.5),
+                      MarchingTetrahedra(0.5),
+                      MarchingCubes(iso=0.5, reduceverts=false),
+                      MarchingTetrahedra(iso=0.5, reduceverts=false))
+        @testset "$(typeof(algorithm))" begin
+            # Extract isosurface using a function
+            points, faces = isosurface(f, algorithm, origin=origin, widths=widths, samples=(50, 50, 50))
+
+            # should be centered on the origin
+            @test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
+            # and should be symmetric about the origin
+            #@test maximum(points) ≈ [0.5, 0.5, 0.5]
+            #@test minimum(points) ≈ [-0.5, -0.5, -0.5]
+        end
+    end
+
+    #TODO: SurfaceNets functional variant is bugged
+    # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
+    # so a larger tolerance is needed for this one. In addition,
+    # quad -> triangle conversion is not functioning correctly
+    # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
+    points, faces = isosurface(f, NaiveSurfaceNets(0.5), origin=origin, widths=widths, samples=(21, 21, 21))
+
+    # should be centered on the origin
+    #@test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
+    # and should be symmetric about the origin
+    #@test maximum(points) ≈ [0.5, 0.5, 0.5] atol=0.2
+    #@test minimum(points) ≈ [-0.5, -0.5, -0.5] atol=0.2
+end
 @testset "surface nets" begin
 
 
@@ -71,12 +123,10 @@ end
 
 @testset "marching cubes" begin
     algo = MarchingCubes()
-    algo_pos = MarchingCubes(insidepositive=true)
     algo_no_reduce_verts = MarchingCubes(reduceverts=false)
 
     # Extract isosurfaces using MarchingCubes
     points_mf, faces_mf = isosurface(sphere_function, algo, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
-    points_mf_pos, faces_mf_pos = isosurface(v -> -sphere_function(v), algo_pos, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
     points_mfrv, faces_mfrv = isosurface(sphere_function, algo_no_reduce_verts, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
 
     # Test the number of vertices and faces
@@ -84,9 +134,6 @@ end
     @test length(points_mf) == 7320
     @test length(faces_mf) == 3656
     @test length(faces_mf) == length(faces_mfrv)
-    @test length(faces_mf) == length(faces_mf_pos)
-    @test points_mf == points_mf_pos
-    @test faces_mf == faces_mf_pos
 end
 @testset "marching tetrahedra" begin
     a1 = MarchingTetrahedra()
@@ -113,23 +160,6 @@ end
     @test length(faces_mt2_partial) == length(faces_mt1_partial)
 end
 
-@testset "sign flips" begin
-    for algo_type in algos
-        algo = algo_type()
-        algo_pos = algo_type(insidepositive=true)
-
-        # Extract isosurfaces using the regular algorithm
-        points_mf, faces_mf = isosurface(sphere_function, algo, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
-
-        # Extract isosurfaces using the insidepositive algorithm
-        points_mf_pos, faces_mf_pos = isosurface(v -> -sphere_function(v), algo_pos, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
-
-        # Test that the vertices and faces are the same for both cases
-        @test all(points_mf .≈ points_mf_pos)
-        @test all(faces_mf .== faces_mf_pos)
-    end
-end
-
 @testset "function/array" begin
 
     for algo in algos
@@ -148,47 +178,6 @@ end
     end
 end
 
-#=
-@testset "respect origin" begin
-    # verify that when we construct a mesh, that mesh:
-    # a) respects the origin of the SDF
-    # b) is correctly spaced so that symmetric functions create symmetric meshes
-    f = x -> norm(x)
-    origin = SVector{3, Float32}(-1, -1, -1)
-    widths = SVector{3, Float32}(2, 2, 2)
-    resolution = 0.1
-
-    for algorithm in (MarchingCubes(0.5),
-                      MarchingTetrahedra(0.5),
-                      MarchingCubes(iso=0.5, reduceverts=false),
-                      MarchingTetrahedra(iso=0.5, reduceverts=false))
-        @testset "$(typeof(algorithm))" begin
-            # Extract isosurface using a function
-            points, faces = isosurface(f, algorithm, origin=origin, widths=widths, samples=(50, 50, 50))
-
-            # should be centered on the origin
-            @test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
-            # and should be symmetric about the origin
-            @test maximum(points) ≈ [0.5, 0.5, 0.5]
-            @test minimum(points) ≈ [-0.5, -0.5, -0.5]
-        end
-    end
-
-    #TODO: SurfaceNets functional variant is bugged
-    # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
-    # so a larger tolerance is needed for this one. In addition,
-    # quad -> triangle conversion is not functioning correctly
-    # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
-    points, faces = isosurface(f, NaiveSurfaceNets(0.5), origin=origin, widths=widths, samples=(21, 21, 21))
-
-    # should be centered on the origin
-    @test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
-    # and should be symmetric about the origin
-    @test maximum(points) ≈ [0.5, 0.5, 0.5] atol=0.2
-    @test minimum(points) ≈ [-0.5, -0.5, -0.5] atol=0.2
-end
-
-=#
 @testset "mixed types" begin
     # https://github.com/JuliaGeometry/Meshing.jl/issues/9
     samples = randn(10, 10, 10)

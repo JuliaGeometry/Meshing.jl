@@ -13,7 +13,7 @@ using MeshIO
 using GeometryBasics
 
 # load the file as an AxisArray
-ctacardio = load("CTA-cardio.nrrd")
+ctacardio = load(Downlaods.)
 
 # use marching cubes with isolevel at 100
 algo = MarchingCubes(iso=100, insidepositive=true)

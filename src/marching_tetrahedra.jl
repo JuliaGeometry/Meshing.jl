@@ -146,7 +146,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
     scale = widths ./ VertType(size(sdf) .- 1)
     nx::Int, ny::Int, nz::Int = size(sdf)
 
-    @inbounds for k = 1:nz-1, j = 1:ny-1, i = 1:nx-1
+    @inbounds for i = 1:nx-1, j = 1:ny-1, k = 1:nz-1
 
         vals = (sdf[i,  j,  k  ],
                 sdf[i,  j+1,k  ],
@@ -157,7 +157,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, ::Type
                 sdf[i+1,j+1,k+1],
                 sdf[i+1,j,  k+1])
 
-        cubeindex = method.insidepositive ? _get_cubeindex_pos(vals, method.iso) : _get_cubeindex(vals, method.iso)
+        cubeindex = _get_cubeindex(vals, method.iso)
 
         _no_triangles(cubeindex) && continue
 
@@ -182,7 +182,7 @@ function isosurface(f::Function, method::MarchingTetrahedra,
     zv = zero(eltype(VertType))
     vals = (zv,zv,zv,zv,zv,zv,zv,zv)
 
-    @inbounds for k = 1:nz-1, j = 1:ny-1, i = 1:nx-1
+    @inbounds for i = 1:nx-1, j = 1:ny-1, k = 1:nz-1
         points = (VertType(i-1,j-1,k-1).* scale .+ origin,
                   VertType(i-1,j  ,k-1).* scale .+ origin,
                   VertType(i  ,j  ,k-1).* scale .+ origin,
@@ -191,27 +191,16 @@ function isosurface(f::Function, method::MarchingTetrahedra,
                   VertType(i-1,j  ,k  ).* scale .+ origin,
                   VertType(i  ,j  ,k  ).* scale .+ origin,
                   VertType(i  ,j-1,k  ).* scale .+ origin)
-        if i == 1
-            vals = (f(points[1]),
-                    f(points[2]),
-                    f(points[3]),
-                    f(points[4]),
-                    f(points[5]),
-                    f(points[6]),
-                    f(points[7]),
-                    f(points[8]))
-        else
-            vals = (vals[4],
-                    vals[3],
-                    f(points[3]),
-                    f(points[4]),
-                    vals[8],
-                    vals[7],
-                    f(points[7]),
-                    f(points[8]))
-        end
+        vals = (f(points[1]),
+                f(points[2]),
+                f(points[3]),
+                f(points[4]),
+                f(points[5]),
+                f(points[6]),
+                f(points[7]),
+                f(points[8]))
 
-        cubeindex = method.insidepositive ? _get_cubeindex_pos(vals, method.iso) : _get_cubeindex(vals, method.iso)
+        cubeindex = _get_cubeindex(vals, method.iso)
 
         _no_triangles(cubeindex) && continue
 
