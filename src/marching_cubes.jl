@@ -35,8 +35,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, ::Type{Vert
         points = mc_vert_points(xi,yi,zi,s,origin,VertType)
 
         # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
+        _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
     end
     vts,fcs
 end
@@ -70,7 +69,6 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
                     f(points[7]),
                     f(points[8]))
         # TODO: Cache points
-        
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
@@ -80,9 +78,7 @@ function isosurface(f::Function, method::MarchingCubes, ::Type{VertType}=SVector
         _no_triangles(cubeindex) && continue
 
         # Create the triangle
-        method.reduceverts && _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
-        !method.reduceverts && _mc_create_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
-
+        _mc_unique_triangles!(method, points, iso_vals, vts, fcs, cubeindex, FaceType)
     end
     vts,fcs
 end

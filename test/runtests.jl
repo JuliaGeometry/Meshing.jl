@@ -123,17 +123,13 @@ end
 
 @testset "marching cubes" begin
     algo = MarchingCubes()
-    algo_no_reduce_verts = MarchingCubes(reduceverts=false)
 
     # Extract isosurfaces using MarchingCubes
     points_mf, faces_mf = isosurface(sphere_function, algo, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
-    points_mfrv, faces_mfrv = isosurface(sphere_function, algo_no_reduce_verts, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
 
     # Test the number of vertices and faces
-    @test length(points_mfrv) == 10968
     @test length(points_mf) == 7320
     @test length(faces_mf) == 3656
-    @test length(faces_mf) == length(faces_mfrv)
 end
 @testset "marching tetrahedra" begin
     a1 = MarchingTetrahedra()

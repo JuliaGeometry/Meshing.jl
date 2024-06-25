@@ -52,7 +52,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::NaiveSurfaceNets, ::Type{V
                                   sdf[xi+1,yi+2,zi+2],
                                   sdf[xi+2,yi+2,zi+2])
 
-                mask = method.insidepositive ? _get_cubeindex_pos(grid, method.iso) : _get_cubeindex(grid, method.iso)
+                mask = _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
@@ -155,7 +155,7 @@ function isosurface(f::Function, method::NaiveSurfaceNets,
                 end
 
                 # Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-                mask = method.insidepositive ? _get_cubeindex_pos(grid, method.iso) : _get_cubeindex(grid, method.iso)
+                mask = _get_cubeindex(grid, method.iso)
 
                 # Check for early termination if cell does not intersect boundary
                 if _no_triangles(mask)
