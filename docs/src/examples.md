@@ -13,7 +13,7 @@ using MeshIO
 using GeometryBasics
 
 # load the file as an AxisArray
-ctacardio = load(Downlaods.)
+ctacardio = load("CTA-cardio.nrrd")
 
 # use marching cubes with isolevel at 100
 algo = MarchingCubes(iso=100, insidepositive=true)
@@ -94,4 +94,30 @@ end
 points, faces = isosurface(MarchingTetrahedra(), origin=SVector(-1,-1,-1.), widths = SVector(2,2,2.), samples = (40,40,40)) do v
     sqrt(sum(dot(v,v))) - 1
 end
+```
+
+## Isocaps
+
+```julia
+using GeometryTypes
+
+gyroid(v) = cos(v[1])*sin(v[2])+cos(v[2])*sin(v[3])+cos(v[3])*sin(v[1])
+gyroid_shell(v) = max(gyroid(v)-0.4,-gyroid(v)-0.4)
+
+xr,yr,zr = ntuple(_->LinRange(0,pi*4,50),3)
+
+A = [gyroid_shell((x,y,z)) for x in xr, y in yr, z in zr]
+A[1,:,:] .= 1e10
+A[:,1,:] .= 1e10
+A[:,:,1] .= 1e10
+A[end,:,:] .= 1e10
+A[:,end,:] .= 1e10
+A[:,:,end] .= 1e10
+
+gy_mesh = GLNormalMesh(A, MarchingCubes())
+
+# view with Makie
+import Makie
+using LinearAlgebra
+Makie.mesh(gy_mesh, color=[norm(v) for v in gy_mesh.vertices])
 ```
