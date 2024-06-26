@@ -1,0 +1,7 @@
+[deps]
+Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
+Meshing = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
+NRRD = "9bb6cfbd-7763-5393-b1b5-1c8e09872146"
+WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"

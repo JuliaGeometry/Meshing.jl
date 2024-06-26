@@ -3,7 +3,6 @@
 The internals of Meshing have been optimized for performance and to be generic.
 This is some brief documentation on the basic internal functions.
 
-
 ## Common
 
 ```@docs

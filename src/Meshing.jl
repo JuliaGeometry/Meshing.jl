@@ -2,7 +2,6 @@ module Meshing
 
 using StaticArrays
 
-
 """
     _DEFAULT_SAMPLES = (24,24,24)
 
@@ -17,7 +16,6 @@ include("marching_cubes.jl")
 include("surface_nets.jl")
 include("roots.jl")
 include("adaptive.jl")
-include("marching_tetrahedra_adaptive.jl")
 
 export isosurface,
        MarchingCubes,

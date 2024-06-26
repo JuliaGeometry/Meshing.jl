@@ -43,7 +43,6 @@ may be large and it will be difficult to extract topological/connectivity inform
 - `iso` (default: 0.0) specifies the iso level to use for surface extraction.
 - `eps` (default: 1e-3) is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with slight performance improvement.
-- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct MarchingCubes{T} <: AbstractMeshingAlgorithm
     iso::T
@@ -66,7 +65,6 @@ making this algorithm useful for topological analysis.
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` (default: true) if false, vertices will not be unique and have repeated face references.
-- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
     iso::T
@@ -89,7 +87,6 @@ however the algorithm does not guarantee accuracy and generates quad faces.
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` reserved for future use.
-- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
     iso::T
@@ -112,7 +109,6 @@ may be large and it will be difficult to extract topological/connectivity inform
 - `iso` (default: 0.0) specifies the iso level to use for surface extraction.
 - `eps` (default: 1e-3) is the tolerence around a voxel corner to ensure manifold mesh generation.
 - `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with slight performance improvement.
-- `insidepositive` (default: false) set true if the sign convention inside the surface is positive, common for NRRD and DICOM data
 """
 struct AdaptiveMarchingCubes{T} <: AbstractAdaptiveMeshingAlgorithm
     iso::T
@@ -120,7 +116,6 @@ struct AdaptiveMarchingCubes{T} <: AbstractAdaptiveMeshingAlgorithm
     rtol::T
     atol::T
     reduceverts::Bool
-    insidepositive::Bool
 end
 
 
@@ -130,7 +125,6 @@ struct AdaptiveMarchingTetrahedra{T} <: AbstractAdaptiveMeshingAlgorithm
     rtol::T
     atol::T
     reduceverts::Bool
-    insidepositive::Bool
 end
 
 

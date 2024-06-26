@@ -276,8 +276,6 @@ function isosurface(f::Function, method::AdaptiveMarchingTetrahedra, ::Type{Vert
 
     val_store = Dict{NTuple{3,ET},ET}();
     vertex_store = Dict{NTuple{3,ET},ET}();
-    sizehint!(val_store, trunc(Int, maximum(widths)*12/max(method.atol,method.rtol)))
-    sizehint!(vertex_store, trunc(Int, maximum(widths)*12/max(method.atol,method.rtol)))
 
     @inbounds while true
 
