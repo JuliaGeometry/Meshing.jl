@@ -20,18 +20,14 @@ Voxel corner and edge indexing conventions
   /
  X
 """
-# this gets vectorized so we want to ensure it is the
-# same type as out vertex
-function voxCrnrPos()
-    ((0, 0, 0),
-    (0, 1, 0),
-    (1, 1, 0),
-    (1, 0, 0),
-    (0, 0, 1),
-    (0, 1, 1),
-    (1, 1, 1),
-    (1, 0, 1))
-end
+const voxCrnrPos = ((0, 0, 0),
+                    (0, 1, 0),
+                    (1, 1, 0),
+                    (1, 0, 0),
+                    (0, 0, 1),
+                    (0, 1, 1),
+                    (1, 1, 1),
+                    (1, 0, 1))
 
 # the voxel IDs at either end of the tetrahedra edges, by edge ID
 const voxEdgeCrnrs = ((0x01, 0x02),
