@@ -9,17 +9,6 @@ const algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
 
 sphere_function(v) = sqrt(sum(dot(v, v))) - 1
 torus_function(v) = (sqrt(v[1]^2 + v[2]^2) - 0.5)^2 + v[3]^2 - 0.25
-@testset "meshing algorithms" begin
-    for algo in (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
-        @test algo(5) == algo{Float64}(5.0, 0.001, true, false)
-        @test algo(0x00, 0x00) == algo{UInt8}(0x00, 0x00, true, false)
-        @test algo{UInt16}(5, 0x00) == algo{UInt16}(0x0005, 0x0000, true, false)
-        @test algo{Float32}(1) ==  algo{Float32}(1.0f0, 0.001f0, true, false)
-        @test algo{Float32}(1.0, 0x00) == algo{Float32}(1.0f0, 0.0f0, true, false)
-        @test algo{Float32}(iso=1, eps=0x00, insidepositive=true, reduceverts=false) ==
-            algo{Float32}(1.0f0, 0.0f0, false, true)
-    end
-end
 
 @testset "_get_cubeindex" begin
     iso_vals1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
@@ -48,10 +37,8 @@ end
     f = x -> norm(x)
     resolution = 0.1
 
-    for algorithm in (MarchingCubes(0.5),
-                      MarchingTetrahedra(0.5),
-                      MarchingCubes(iso=0.5, reduceverts=false),
-                      MarchingTetrahedra(iso=0.5, reduceverts=false))
+    for algorithm in (MarchingCubes(iso=0.5),
+                      MarchingTetrahedra(iso=0.5))
         @testset "$(typeof(algorithm))" begin
             # Extract isosurface using a function
             points, faces = isosurface(f, algorithm, samples=(50, 50, 50))
@@ -115,7 +102,7 @@ end
     #
     lambda = N-2*sigma # isovalue
 
-    points, faces = isosurface(distance, MarchingTetrahedra(lambda))
+    points, faces = isosurface(distance, MarchingTetrahedra(iso=lambda))
 
     @test length(points) == 3466
     @test length(faces) == 6928
@@ -133,27 +120,20 @@ end
 end
 @testset "marching tetrahedra" begin
     a1 = MarchingTetrahedra()
-    a2 = MarchingTetrahedra(reduceverts=false)
 
     # Extract isosurfaces using MarchingTetrahedra
     points_mt1, faces_mt1 = isosurface(v -> sqrt(sum(dot(v, v))) - 1, a1, samples=(21, 21, 21))
-    points_mt2, faces_mt2 = isosurface(v -> sqrt(sum(dot(v, v))) - 1, a2, samples=(21, 21, 21))
 
     # Test the number of vertices and faces
     @test length(points_mt1) == 5582
-    @test length(points_mt2) == 33480
     @test length(faces_mt1) == 11160
-    @test length(faces_mt2) == length(faces_mt1)
 
     # When zero set is not completely within the box
     points_mt1_partial, faces_mt1_partial = isosurface(v -> v[3] - 50, a1, 0:50, 0:50, 40:60, samples=(2, 2, 2))
-    points_mt2_partial, faces_mt2_partial = isosurface(v -> v[3] - 50, a2, 0:50, 0:50, 40:60, samples=(2, 2, 2))
 
     # Test the number of vertices and faces
     @test length(points_mt1_partial) == 9
-    @test length(points_mt2_partial) == 24
     @test length(faces_mt1_partial) == 8
-    @test length(faces_mt2_partial) == length(faces_mt1_partial)
 end
 
 @testset "function/array" begin
@@ -161,11 +141,11 @@ end
     for algo in algos
         @testset "$algo" begin
             # Extract isosurface using a function
-            points_fn, faces_fn = isosurface(torus_function, algo(), origin=SVector(-2, -2, -2), widths=SVector(4, 4, 4), samples=(81, 81, 81))
+            points_fn, faces_fn = isosurface(torus_function, algo(), -2:2, -2:2, -2:2, samples=(81, 81, 81))
 
             # Extract isosurface using an array
             torus_array = [torus_function(SVector(x, y, z)) for x in -2:0.05:2, y in -2:0.05:2, z in -2:0.05:2]
-            points_arr, faces_arr = isosurface(torus_array, algo(), origin=SVector(-2, -2, -2), widths=SVector(4, 4, 4))
+            points_arr, faces_arr = isosurface(torus_array, algo(), -2:2, -2:2, -2:2)
 
             # Test that the vertices and faces are the same for both cases
             @test_broken all(points_fn .≈ points_arr)

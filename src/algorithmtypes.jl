@@ -13,27 +13,8 @@ abstract type AbstractMeshingAlgorithm end
 abstract type AbstractAdaptiveMeshingAlgorithm end
 
 
-function (::Type{MeshAlgo})(;iso::T1=0.0, eps::T2=1e-3, reduceverts::Bool=true, insidepositive::Bool=false) where {T1, T2, MeshAlgo <: AbstractMeshingAlgorithm}
-    if isconcretetype(MeshAlgo)
-        return MeshAlgo(iso, eps, reduceverts, insidepositive)
-    else
-        return MeshAlgo{promote_type(T1, T2)}(iso, eps, reduceverts, insidepositive)
-    end
-end
-
-function (::Type{MeshAlgo})(iso) where MeshAlgo <: AbstractMeshingAlgorithm
-    MeshAlgo(iso=iso)
-end
-
-function (::Type{MeshAlgo})(iso,eps) where MeshAlgo <: AbstractMeshingAlgorithm
-    MeshAlgo(iso=iso,eps=eps)
-end
-
 """
-    MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
-    MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
-    MarchingCubes(iso)
-    MarchingCubes(iso,eps)
+    MarchingCubes(iso=0.0)
 
 Specifies the use of the Marching Cubes algorithm for isosurface extraction.
 This algorithm provides a good balance between performance and vertex count.
@@ -41,19 +22,14 @@ In contrast to the other algorithms, vertices may be repeated, so mesh size
 may be large and it will be difficult to extract topological/connectivity information.
 
 - `iso` (default: 0.0) specifies the iso level to use for surface extraction.
-- `eps` (default: 1e-3) is the tolerence around a voxel corner to ensure manifold mesh generation.
-- `reduceverts` (default: true) if true will merge vertices within a voxel to reduce mesh size by around 30% and with slight performance improvement.
 """
-struct MarchingCubes{T} <: AbstractMeshingAlgorithm
-    iso::T
-    eps::T
-    reduceverts::Bool
-    insidepositive::Bool
+Base.@kwdef struct MarchingCubes{T} <: AbstractMeshingAlgorithm
+    iso::T = 0.0
 end
 
 """
-    MarchingTetrahedra(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
-    MarchingTetrahedra(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    MarchingTetrahedra(iso=0.0, eps=1e-3)
+    MarchingTetrahedra(;iso=0.0, eps=1e-3)
     MarchingTetrahedra(iso)
     MarchingTetrahedra(iso,eps)
 
@@ -64,18 +40,15 @@ making this algorithm useful for topological analysis.
 
 - `iso` specifies the iso level to use for surface extraction.
 - `eps` is the tolerence around a voxel corner to ensure manifold mesh generation.
-- `reduceverts` (default: true) if false, vertices will not be unique and have repeated face references.
 """
-struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
-    iso::T
-    eps::T
-    reduceverts::Bool
-    insidepositive::Bool
+Base.@kwdef struct MarchingTetrahedra{T} <: AbstractMeshingAlgorithm
+    iso::T = 0.0
+    eps::T = 1e-3
 end
 
 """
-    NaiveSurfaceNets(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
-    NaiveSurfaceNets(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    NaiveSurfaceNets(iso=0.0, eps=1e-3)
+    NaiveSurfaceNets(;iso=0.0, eps=1e-3)
     NaiveSurfaceNets(iso)
     NaiveSurfaceNets(iso,eps)
 
@@ -96,8 +69,8 @@ struct NaiveSurfaceNets{T} <: AbstractMeshingAlgorithm
 end
 
 """
-    MarchingCubes(iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
-    MarchingCubes(;iso=0.0, eps=1e-3, reduceverts=true, insidepositive=false)
+    MarchingCubes(iso=0.0, eps=1e-3)
+    MarchingCubes(;iso=0.0, eps=1e-3)
     MarchingCubes(iso)
     MarchingCubes(iso,eps)
 
@@ -115,7 +88,6 @@ struct AdaptiveMarchingCubes{T} <: AbstractAdaptiveMeshingAlgorithm
     eps::T
     rtol::T
     atol::T
-    reduceverts::Bool
 end
 
 
@@ -124,7 +96,6 @@ struct AdaptiveMarchingTetrahedra{T} <: AbstractAdaptiveMeshingAlgorithm
     eps::T
     rtol::T
     atol::T
-    reduceverts::Bool
 end
 
 
