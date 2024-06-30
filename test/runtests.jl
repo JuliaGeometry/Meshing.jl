@@ -1,7 +1,6 @@
 using Meshing
 using Test
 using ForwardDiff
-using StaticArrays
 using Statistics: mean
 using LinearAlgebra: dot, norm
 using Random
@@ -36,19 +35,23 @@ end
     @test Meshing._get_cubeindex(iso_vals3, iso3) == 0xe0
 end
 
+@testset "vertex interpolation" begin
+    @test Meshing.vertex_interp(0, (0,0,0), (0,1,0), -1, 1) == (0,0.5,0)
+    @test Meshing.vertex_interp(-1, (0,0,0), (0,1,0), -1, 1) == (0,0,0)
+    @test Meshing.vertex_interp(1, (0,0,0), (0,1,0), -1, 1) == (0,1,0)
+end
+
 @testset "respect origin" begin
     # verify that when we construct a mesh, that mesh:
     # a) respects the origin of the SDF
     # b) is correctly spaced so that symmetric functions create symmetric meshes
     f = x -> norm(x)
-    origin = SVector{3, Float64}(-1, -1, -1)
-    widths = SVector{3, Float64}(2, 2, 2)
     resolution = 0.1
 
     for algorithm in (MarchingCubes(0.5),
-                      #MarchingTetrahedra(0.5),
-                      MarchingCubes(iso=0.5, reduceverts=false))
-                      #MarchingTetrahedra(iso=0.5, reduceverts=false))
+                      MarchingTetrahedra(0.5),
+                      MarchingCubes(iso=0.5, reduceverts=false),
+                      MarchingTetrahedra(iso=0.5, reduceverts=false))
         @testset "$(typeof(algorithm))" begin
             # Extract isosurface using a function
             points, faces = isosurface(f, algorithm, samples=(50, 50, 50))
@@ -56,8 +59,11 @@ end
             # should be centered on the origin
             @test mean(collect.(points)) ≈ [0, 0, 0] atol=0.15*resolution
             # and should be symmetric about the origin
-            #@test maximum(points) ≈ [0.5, 0.5, 0.5]
-            #@test minimum(points) ≈ [-0.5, -0.5, -0.5]
+
+            for i in 1:3
+                @test maximum(map(p -> p[i], collect.(points))) ≈ 0.5 atol=0.001
+                @test minimum(map(p -> p[i], collect.(points))) ≈ -0.5 atol=0.001
+            end
         end
     end
 
@@ -66,7 +72,7 @@ end
     # so a larger tolerance is needed for this one. In addition,
     # quad -> triangle conversion is not functioning correctly
     # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
-    points, faces = isosurface(f, NaiveSurfaceNets(0.5), origin=origin, widths=widths, samples=(21, 21, 21))
+    points, faces = isosurface(f, NaiveSurfaceNets(0.5), samples=(21, 21, 21))
 
     # should be centered on the origin
     #@test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
@@ -113,12 +119,6 @@ end
 
     @test length(points) == 3466
     @test length(faces) == 6928
-end
-
-@testset "vertex interpolation" begin
-    @test Meshing.vertex_interp(0, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,0.5,0)
-    @test Meshing.vertex_interp(-1, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,0,0)
-    @test Meshing.vertex_interp(1, SVector(0,0,0), SVector(0,1,0), -1, 1) == SVector(0,1,0)
 end
 
 @testset "marching cubes" begin

@@ -22,18 +22,16 @@ Voxel corner and edge indexing conventions
 """
 # this gets vectorized so we want to ensure it is the
 # same type as out vertex
-@inline function voxCrnrPos(::Type{PT}) where {PT}
-    (PT(0, 0, 0),
-    PT(0, 1, 0),
-    PT(1, 1, 0),
-    PT(1, 0, 0),
-    PT(0, 0, 1),
-    PT(0, 1, 1),
-    PT(1, 1, 1),
-    PT(1, 0, 1))
+function voxCrnrPos()
+    ((0, 0, 0),
+    (0, 1, 0),
+    (1, 1, 0),
+    (1, 0, 0),
+    (0, 0, 1),
+    (0, 1, 1),
+    (1, 1, 1),
+    (1, 0, 1))
 end
-
-const voxCrnrPosInt = voxCrnrPos(SVector{3,UInt8})
 
 # the voxel IDs at either end of the tetrahedra edges, by edge ID
 const voxEdgeCrnrs = ((0x01, 0x02),

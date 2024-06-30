@@ -30,7 +30,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, X=-1:1, Y=-
         # Cube is entirely in/out of the surface
         _no_triangles(cubeindex) && continue
 
-        points = mc_vert_points(xi+1,yi+1,zi+1,xp,yp,zp)
+        points = mc_vert_points(xi,yi,zi,xp,yp,zp)
 
         # process the voxel
         process_mc_voxel!(vts, fcs, cubeindex, points, method.iso, iso_vals)
@@ -39,7 +39,7 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingCubes, X=-1:1, Y=-
 end
 
 
-function isosurface(f::Function, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1; samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer}
+function isosurface(f::F, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1; samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T <: Integer, F <: Function}
 
     nx, ny, nz = samples[1], samples[2], samples[3]
 
@@ -53,18 +53,40 @@ function isosurface(f::Function, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1; 
     yp = LinRange(first(Y), last(Y), ny)
     zp = LinRange(first(Z), last(Z), nz)
 
+    # initialize iso_vals so we can cache function evaluations
+    points = mc_vert_points(1,1,1,xp,yp,zp)
+    iso_vals = (f(points[1]),
+                f(points[2]),
+                f(points[3]),
+                f(points[4]),
+                f(points[5]),
+                f(points[6]),
+                f(points[7]),
+                f(points[8]))
+
     @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
 
-        points = mc_vert_points(xi+1,yi+1,zi+1,xp,yp,zp)
+        points = mc_vert_points(xi,yi,zi,xp,yp,zp)
 
-        iso_vals = (f(points[1]),
-                    f(points[2]),
-                    f(points[3]),
-                    f(points[4]),
-                    f(points[5]),
-                    f(points[6]),
-                    f(points[7]),
-                    f(points[8]))
+        iso_vals = if xi == 1
+            (f(points[1]),
+            f(points[2]),
+            f(points[3]),
+            f(points[4]),
+            f(points[5]),
+            f(points[6]),
+            f(points[7]),
+            f(points[8]))
+        else
+            (iso_vals[2],
+            f(points[2]),
+            f(points[3]),
+            iso_vals[3],
+            iso_vals[6],
+            f(points[6]),
+            f(points[7]),
+            iso_vals[7])
+        end
 
         #Determine the index into the edge table which
         #tells us which vertices are inside of the surface
@@ -114,10 +136,8 @@ Linearly interpolate the position where an isosurface cuts
 an edge between two vertices, each with their own scalar value
 """
 function vertex_interp(iso, p1, p2, valp1, valp2)
-
-    mu = (iso .- valp1) / (valp2 .- valp1)
+    mu = (iso - valp1) / (valp2 - valp1)
     p = p1 .+ mu .* (p2 .- p1)
-
     return p
 end
 
@@ -127,12 +147,12 @@ end
 Returns a tuple of 8 points corresponding to each corner of a cube
 """
 @inline function mc_vert_points(xi,yi,zi,xp,yp,zp)
-    ((xp[xi-1],yp[yi-1],zp[zi-1]),
-    (xp[xi  ],yp[yi-1],zp[zi-1]),   
-    (xp[xi  ],yp[yi  ],zp[zi-1]),
-    (xp[xi-1],yp[yi  ],zp[zi-1]),
-    (xp[xi-1],yp[yi-1],zp[zi  ]),
-    (xp[xi  ],yp[yi-1],zp[zi  ]),
-    (xp[xi  ],yp[yi  ],zp[zi  ]),
-    (xp[xi-1],yp[yi  ],zp[zi  ]))
+    ((xp[xi  ],yp[yi  ],zp[zi  ]),
+     (xp[xi+1],yp[yi  ],zp[zi  ]),   
+     (xp[xi+1],yp[yi+1],zp[zi  ]),
+     (xp[xi  ],yp[yi+1],zp[zi  ]),
+     (xp[xi  ],yp[yi  ],zp[zi+1]),
+     (xp[xi+1],yp[yi  ],zp[zi+1]),
+     (xp[xi+1],yp[yi+1],zp[zi+1]),
+     (xp[xi  ],yp[yi+1],zp[zi+1]))
 end
