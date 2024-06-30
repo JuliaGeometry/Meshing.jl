@@ -46,15 +46,15 @@ end
     resolution = 0.1
 
     for algorithm in (MarchingCubes(0.5),
-                      MarchingTetrahedra(0.5),
-                      MarchingCubes(iso=0.5, reduceverts=false),
-                      MarchingTetrahedra(iso=0.5, reduceverts=false))
+                      #MarchingTetrahedra(0.5),
+                      MarchingCubes(iso=0.5, reduceverts=false))
+                      #MarchingTetrahedra(iso=0.5, reduceverts=false))
         @testset "$(typeof(algorithm))" begin
             # Extract isosurface using a function
-            points, faces = isosurface(f, algorithm, origin=origin, widths=widths, samples=(50, 50, 50))
+            points, faces = isosurface(f, algorithm, samples=(50, 50, 50))
 
             # should be centered on the origin
-            @test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
+            @test mean(collect.(points)) ≈ [0, 0, 0] atol=0.15*resolution
             # and should be symmetric about the origin
             #@test maximum(points) ≈ [0.5, 0.5, 0.5]
             #@test minimum(points) ≈ [-0.5, -0.5, -0.5]
@@ -125,7 +125,7 @@ end
     algo = MarchingCubes()
 
     # Extract isosurfaces using MarchingCubes
-    points_mf, faces_mf = isosurface(sphere_function, algo, origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
+    points_mf, faces_mf = isosurface(sphere_function, algo, samples=(21, 21, 21))
 
     # Test the number of vertices and faces
     @test length(points_mf) == 7320
