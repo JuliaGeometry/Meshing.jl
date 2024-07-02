@@ -14,7 +14,7 @@ abstract type AbstractAdaptiveMeshingAlgorithm end
 
 
 """
-    MarchingCubes(iso=0.0)
+    MarchingCubes(;iso=0.0)
 
 Specifies the use of the Marching Cubes algorithm for isosurface extraction.
 This algorithm provides a good balance between performance and vertex count.
@@ -28,10 +28,7 @@ Base.@kwdef struct MarchingCubes{T} <: AbstractMeshingAlgorithm
 end
 
 """
-    MarchingTetrahedra(iso=0.0, eps=1e-3)
     MarchingTetrahedra(;iso=0.0, eps=1e-3)
-    MarchingTetrahedra(iso)
-    MarchingTetrahedra(iso,eps)
 
 Specifies the use of the Marching Tetrahedra algorithm for isosurface extraction.
 This algorithm has a roughly 2x performance penalty compared to Marching Cubes,
@@ -75,10 +72,3 @@ struct AdaptiveMarchingTetrahedra{T} <: AbstractAdaptiveMeshingAlgorithm
     rtol::T
     atol::T
 end
-
-
-#
-# Helper functions
-#
-
-default_face_length(::Union{MarchingCubes,MarchingTetrahedra}) = 3
