@@ -5,7 +5,10 @@ include("lut/mc.jl")
 function isosurface(sdf::AbstractArray{T,3}, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1) where {T}
     nx, ny, nz = size(sdf)
 
-    vts = NTuple{3,float(T)}[]
+    # find widest type
+    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso))
+
+    vts = NTuple{3,float(FT)}[]
     fcs = NTuple{3,Int}[]
 
     xp = LinRange(first(X), last(X), nx)
@@ -44,7 +47,7 @@ function isosurface(f::Function, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1; 
     nx, ny, nz = samples[1], samples[2], samples[3]
 
     # find widest type
-    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T))
+    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso))
 
     vts = NTuple{3,float(FT)}[]
     fcs = NTuple{3,Int}[]

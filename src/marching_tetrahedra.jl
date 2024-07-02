@@ -128,9 +128,11 @@ end
 
 function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, X=-1:1, Y=-1:1, Z=-1:1) where {T}
 
+    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso), typeof(method.eps))
+
     vts    = Dict{Int, Int}()
     fcs = NTuple{3,Int}[]
-    vtsAry = NTuple{3,float(T)}[]
+    vtsAry = NTuple{3,float(FT)}[]
 
     # process each voxel
     nx::Int, ny::Int, nz::Int = size(sdf)
@@ -163,7 +165,7 @@ end
 function isosurface(f::F, method::MarchingTetrahedra, X=-1:1, Y=-1:1, Z=-1:1;
                     samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {F, T}
 
-    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T))
+    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso), typeof(method.eps))
 
     vts    = Dict{Int, Int}()
     fcs    = NTuple{3,Int}[]

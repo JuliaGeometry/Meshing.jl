@@ -11,13 +11,11 @@ include("algorithmtypes.jl")
 include("common.jl")
 include("marching_tetrahedra.jl")
 include("marching_cubes.jl")
-include("surface_nets.jl")
 include("roots.jl")
 include("adaptive.jl")
 
 export isosurface,
        MarchingCubes,
-       MarchingTetrahedra,
-       NaiveSurfaceNets
+       MarchingTetrahedra
 
 end # module

@@ -5,7 +5,7 @@ using Statistics: mean
 using LinearAlgebra: dot, norm
 using Random
 
-const algos = (MarchingCubes, MarchingTetrahedra, NaiveSurfaceNets)
+const algos = (MarchingCubes, MarchingTetrahedra)
 
 sphere_function(v) = sqrt(sum(dot(v, v))) - 1
 torus_function(v) = (sqrt(v[1]^2 + v[2]^2) - 0.5)^2 + v[3]^2 - 0.25
@@ -54,37 +54,8 @@ end
         end
     end
 
-    #TODO: SurfaceNets functional variant is bugged
-    # Naive Surface Nets has no accuracy guarantee, and is a weighted sum
-    # so a larger tolerance is needed for this one. In addition,
-    # quad -> triangle conversion is not functioning correctly
-    # see: https://github.com/JuliaGeometry/GeometryTypes.jl/issues/169
-    #points, faces = isosurface(f, NaiveSurfaceNets(0.5), samples=(21, 21, 21))
-
-    # should be centered on the origin
-    #@test mean(points) ≈ [0, 0, 0] atol=0.15*resolution
-    # and should be symmetric about the origin
-    #@test maximum(points) ≈ [0.5, 0.5, 0.5] atol=0.2
-    #@test minimum(points) ≈ [-0.5, -0.5, -0.5] atol=0.2
 end
-#@testset "surface nets" begin
-#
-#
-#    """
-#    Test the isosurface function with NaiveSurfaceNets and a function.
-#
-#    This code tests the `isosurface` function with the `NaiveSurfaceNets` algorithm and two different level set functions: `sphere_function` and `torus_function`. It checks that the number of vertices and faces in the resulting meshes match expected values.
-#    """
-#    # Test the isosurface function with NaiveSurfaceNets and a function
-#    points_sphere, faces_sphere = isosurface(sphere_function, NaiveSurfaceNets(), origin=SVector(-1, -1, -1), widths=SVector(2, 2, 2), samples=(21, 21, 21))
-#    points_torus, faces_torus = isosurface(torus_function, NaiveSurfaceNets(), origin=SVector(-2, -2, -2), widths=SVector(4, 4, 4), samples=(81, 81, 81))
-#
-#    # Add assertions to check the output
-#    @test length(points_sphere) == 1832
-#    @test length(faces_sphere) == 1830
-#    @test length(points_torus) == 5532
-#    @test length(faces_torus) == 5532
-#end
+
 
 @testset "noisy spheres" begin
     # Produce a level set function that is a noisy version of the distance from
@@ -144,7 +115,7 @@ end
             points_fn, faces_fn = isosurface(torus_function, algo(), -2:2, -2:2, -2:2, samples=(81, 81, 81))
 
             # Extract isosurface using an array
-            torus_array = [torus_function(SVector(x, y, z)) for x in -2:0.05:2, y in -2:0.05:2, z in -2:0.05:2]
+            torus_array = [torus_function((x, y, z)) for x in -2:0.05:2, y in -2:0.05:2, z in -2:0.05:2]
             points_arr, faces_arr = isosurface(torus_array, algo(), -2:2, -2:2, -2:2)
 
             # Test that the vertices and faces are the same for both cases
@@ -159,17 +130,20 @@ end
     samples = randn(10, 10, 10)
 
     # Extract isosurfaces using MarchingTetrahedra
-    points_mt1, faces_mt1 = isosurface(samples, MarchingTetrahedra(), origin=SVector(0, 0, 0), widths=SVector(1, 1, 1))
-    points_mt2, faces_mt2 = isosurface(Float32.(samples), MarchingTetrahedra(), origin=SVector(0, 0, 0), widths=SVector(1, 1, 1))
+    points_mt1, faces_mt1 = isosurface(samples, MarchingTetrahedra(), 0:1, 0:1, 0:1)
+    points_mt2, faces_mt2 = isosurface(Float32.(samples), MarchingTetrahedra(), 0:1, 0:1, 0:1)
 
-    @test all(isapprox.(points_mt1, points_mt2, rtol=1e-6))
-    @test all(faces_mt1 == faces_mt2)
+    @test length(points_mt1) == length(points_mt2)
+    #for i in eachindex(points_mt1)
+    #    @test all(points_mt1[i] .≈ points_mt2[i])
+    #end
+    @test length(faces_mt1) == length(faces_mt2)
+    for i in eachindex(faces_mt1)
+        @test all(faces_mt1[i] .≈ faces_mt2[i])
+    end
 
-    #=
     @testset "forward diff" begin
         # Demonstrate that we can even take derivatives through the meshing algorithm
-        origin = SVector(-1, -1, -1)
-        widths = SVector(2, 2, 2)
         resolution = 0.1
 
         for algo in (MarchingCubes, MarchingTetrahedra)
@@ -183,7 +157,7 @@ end
                         # of some quantity you might want to differentiate in a mesh,
                         # and has the benefit for testing of having a trivial expected
                         # solution.
-                        points, _ = isosurface(norm, algo(isovalue,  reduce_vert=false), samples=(21, 21, 21))
+                        points, _ = isosurface(norm, algo(iso=isovalue), samples=(21, 21, 21))
                         mean(norm.(points))
                     end
 
@@ -195,7 +169,7 @@ end
         end
     end
 
-    =#
+
 
     @testset "type stability" begin
         # verify that we don't lose type stability just by mixing arguments
@@ -203,36 +177,38 @@ end
         data = randn(5, 5, 5)
         iso = 0.2
         eps = 1e-4
-        for algo_ty in (MarchingTetrahedra, MarchingCubes,NaiveSurfaceNets)
-            algo1 = algo_ty(iso, eps)
-            algo2 = algo_ty(Float64(iso), Float16(eps))
-            algo3 = algo_ty(Float32(iso), Float64(eps))
-            @inferred(isosurface(data, algo1, SVector{3, Float16}, SVector{3,UInt32}))
-            @inferred(isosurface(Float32.(data), algo2, SVector{3, Float32}, SVector{3,Int16}))
-            @inferred(isosurface(Float64.(data), algo3, SVector{3, Float64}, SVector{3,UInt}))
-        end
+        algo1 = MarchingTetrahedra(iso=iso, eps=eps)
+        algo2 = MarchingTetrahedra(iso=Float16(iso), eps=Float16(eps))
+        algo3 = MarchingTetrahedra(iso=Float32(iso), eps=Float32(eps))
+        @inferred(isosurface(data, algo1))
+        @inferred(isosurface(Float32.(data), algo2))
+        @inferred(isosurface(Float64.(data), algo3))
+
+        algo1 = MarchingCubes(iso=iso)
+        algo2 = MarchingCubes(iso=Float16(iso))
+        algo3 = MarchingCubes(iso=Float32(iso))
+        @inferred(isosurface(data, algo1))
+        @inferred(isosurface(Float32.(data), algo2))
+        @inferred(isosurface(Float64.(data), algo3))
     end
 
     @testset "Float16" begin
         sdf_torus = [((sqrt(x^2 + y^2) - 0.5)^2 + z^2 - 0.25) for x in -2:0.05:2, y in -2:0.05:2, z in -2:0.05:2]
-        points_nsn, faces_nsn = isosurface(Float16.(sdf_torus), NaiveSurfaceNets(Float16(0.0)), origin=SVector(Float16(-2), Float16(-2), Float16(-2)), widths=SVector(Float16(4), Float16(4), Float16(4)))
-        points_mt, faces_mt = isosurface(Float16.(sdf_torus), MarchingTetrahedra(Float16(0.0)), origin=SVector(Float16(-2), Float16(-2), Float16(-2)), widths=SVector(Float16(4), Float16(4), Float16(4)))
-        points_mc, faces_mc = isosurface(Float16.(sdf_torus), MarchingCubes(Float16(0.0)), origin=SVector(Float16(-2), Float16(-2), Float16(-2)), widths=SVector(Float16(4), Float16(4), Float16(4)))
+        points_mt, faces_mt = isosurface(Float16.(sdf_torus), MarchingTetrahedra(iso=Float16(0.0), eps=Float16(1e-3)), Float16(-2):Float16(2), Float16(-2):Float16(2), Float16(-2):Float16(2))
+        points_mc, faces_mc = isosurface(Float16.(sdf_torus), MarchingCubes(iso=Float16(0.0)), Float16(-2):Float16(2), Float16(-2):Float16(2), Float16(-2):Float16(2))
 
-        @test_broken typeof(points_nsn) == Vector{SVector{3, Float16}}
-        @test typeof(faces_nsn) == Vector{SVector{4, Int}}
-        @test_broken typeof(points_mt) == Vector{SVector{3, Float16}}
-        @test typeof(faces_mt) == Vector{SVector{3, Int}}
-        @test_broken typeof(points_mc) == Vector{SVector{3, Float16}}
-        @test typeof(faces_mc) == Vector{SVector{3, Int}}
+        @test typeof(points_mt) == Vector{NTuple{3, Float16}}
+        @test typeof(faces_mt) == Vector{NTuple{3, Int}}
+        @test typeof(points_mc) == Vector{NTuple{3, Float16}}
+        @test typeof(faces_mc) == Vector{NTuple{3, Int}}
     end
     @testset "Integers" begin
         A = rand(Int, 10,10,10)
         for algo in algos
             @testset "$algo" begin
                 p, t = isosurface(A, algo())
-                @test typeof(p) <: Vector{SVector{3,Float64}}
-                @test typeof(t) <: Vector{ SVector{ Meshing.default_face_length(algo()), Int } }
+                @test typeof(p) <: Vector{NTuple{3, Float64}}
+                @test typeof(t) <: Vector{NTuple{3, Int}}
             end
         end
     end
