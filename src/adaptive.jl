@@ -12,7 +12,7 @@ end
 
 
 function vertices(h::HyperRectangle, ::Type{SV}) where SV
-    z = zero(eltype(SV))
+    z = zero(eltype(h.origin))
     @inbounds begin
         o = SV(h.origin[1],h.origin[2],h.origin[3])
         w = SV(h.widths[1],h.widths[2],h.widths[3])
