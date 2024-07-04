@@ -162,43 +162,6 @@ function isosurface(sdf::AbstractArray{T, 3}, method::MarchingTetrahedra, X=-1:1
     vtsAry,fcs
 end
 
-function isosurface(f::F, method::MarchingTetrahedra, X=-1:1, Y=-1:1, Z=-1:1;
-                    samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {F, T}
-
-    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso), typeof(method.eps))
-
-    vts    = Dict{Int, Int}()
-    fcs    = NTuple{3,Int}[]
-    vtsAry = NTuple{3,float(FT)}[]
-
-    # process each voxel
-    nx, ny, nz = samples[1], samples[2], samples[3]
-    xp = LinRange(first(X), last(X), nx)
-    yp = LinRange(first(Y), last(Y), ny)
-    zp = LinRange(first(Z), last(Z), nz)
-
-    @inbounds for i = 1:nx-1, j = 1:ny-1, k = 1:nz-1
-        points = mt_vert_points(i, j, k, xp, yp, zp)
-
-        vals = (f(points[1]),
-                f(points[2]),
-                f(points[3]),
-                f(points[4]),
-                f(points[5]),
-                f(points[6]),
-                f(points[7]),
-                f(points[8]))
-
-        cubeindex = _get_cubeindex(vals, method.iso)
-
-        _no_triangles(cubeindex) && continue
-
-        procVox(vals, method.iso, i, j, k, nx, ny, xp, yp, zp, vts, vtsAry, fcs, method.eps, cubeindex)
-    end
-
-    vtsAry,fcs
-end
-
 function mt_vert_points(i, j, k, xp, yp, zp)
     ((xp[i], yp[j], zp[k]),
     (xp[i], yp[j+1], zp[k]),

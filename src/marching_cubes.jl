@@ -2,6 +2,7 @@
 #Look up Table
 include("lut/mc.jl")
 
+
 function isosurface(sdf::AbstractArray{T,3}, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1) where {T}
     nx, ny, nz = size(sdf)
 
@@ -36,46 +37,6 @@ function isosurface(sdf::AbstractArray{T,3}, method::MarchingCubes, X=-1:1, Y=-1
         points = mc_vert_points(xi, yi, zi, xp, yp, zp)
 
         # process the voxel
-        process_mc_voxel!(vts, fcs, cubeindex, points, method.iso, iso_vals)
-    end
-    vts, fcs
-end
-
-
-function isosurface(f::Function, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1; samples::NTuple{3,T}=_DEFAULT_SAMPLES) where {T<:Integer}
-
-    nx, ny, nz = samples[1], samples[2], samples[3]
-
-    # find widest type
-    FT = promote_type(eltype(first(X)), eltype(first(Y)), eltype(first(Z)), eltype(T), typeof(method.iso))
-
-    vts = NTuple{3,float(FT)}[]
-    fcs = NTuple{3,Int}[]
-
-    xp = LinRange(first(X), last(X), nx)
-    yp = LinRange(first(Y), last(Y), ny)
-    zp = LinRange(first(Z), last(Z), nz)
-
-    @inbounds for xi = 1:nx-1, yi = 1:ny-1, zi = 1:nz-1
-
-        points = mc_vert_points(xi, yi, zi, xp, yp, zp)
-
-        iso_vals = (f(points[1]),
-            f(points[2]),
-            f(points[3]),
-            f(points[4]),
-            f(points[5]),
-            f(points[6]),
-            f(points[7]),
-            f(points[8]))
-
-        #Determine the index into the edge table which
-        #tells us which vertices are inside of the surface
-        cubeindex = _get_cubeindex(iso_vals, method.iso)
-
-        # Cube is entirely in/out of the surface
-        _no_triangles(cubeindex) && continue
-
         process_mc_voxel!(vts, fcs, cubeindex, points, method.iso, iso_vals)
     end
     vts, fcs
