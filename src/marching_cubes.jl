@@ -2,6 +2,27 @@
 #Look up Table
 include("lut/mc.jl")
 
+#=
+Voxel corner and edge indexing conventions
+
+        Z
+        |
+
+        5------8------8  
+       /|            /|      
+      5 |           7 |      
+     /  9          /  12     
+    6------6------7   |      
+    |   |         |   |      
+    |   1------4--|---4  -- Y
+    10 /          11 /       
+    | 1           | 3        
+    |/            |/        
+    2------2------3    
+
+  /
+ X
+=#
 
 function isosurface(sdf::AbstractArray{T,3}, method::MarchingCubes, X=-1:1, Y=-1:1, Z=-1:1) where {T}
     nx, ny, nz = size(sdf)
