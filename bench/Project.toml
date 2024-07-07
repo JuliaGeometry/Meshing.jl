@@ -1,4 +1,0 @@
-[deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
-Meshing = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"

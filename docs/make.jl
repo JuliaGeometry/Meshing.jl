@@ -7,8 +7,7 @@ makedocs(
     modules = [Meshing],
     pages = ["Index" => "index.md",
              "API" => "api.md",
-             "Examples" => "examples.md",
-             "Internals" => "internals.md"]
+             "Examples" => "examples.md"]
 )
 
 deploydocs(
