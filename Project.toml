@@ -1,6 +1,6 @@
 name = "Meshing"
 uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
-version = "0.6.0"
+version = "0.7.0"
 
 [deps]
 
