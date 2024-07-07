@@ -4,7 +4,7 @@ using Meshing
 makedocs(
     sitename = "Meshing",
     format = Documenter.HTML(),
-    modules = [Meshing],
+   #modules = [Meshing],
     pages = ["Index" => "index.md",
              "API" => "api.md",
              "Examples" => "examples.md"]
