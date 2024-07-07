@@ -9,7 +9,7 @@
 
 `isosurface` is the general interface to all isosurface extraction algorithms.
 
-Returns: (Vector, Vector{FaceType})
+Returns: (Vector{NTuple{3, T}, }, Vector{NTuple{3, Int}})
 
 Defaults:
 `method` must be an instance of an `AbstractMeshingAlgorithm`, e.g.:

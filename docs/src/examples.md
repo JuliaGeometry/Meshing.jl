@@ -32,33 +32,7 @@ WGLMakie.mesh(vts, map(v -> GeometryBasics.TriangleFace(v...), fcs))
 
 ![cta cardio](./img/ctacardio.png)
 
-## Functions
-
-```julia
-using Meshing
-using FileIO # MeshIO should also be installed
-using GeometryBasics
-
-gyroid(v) = cos(v[1])*sin(v[2])+cos(v[2])*sin(v[3])+cos(v[3])*sin(v[1])
-gyroid_shell(v) = max(gyroid(v)-0.4,-gyroid(v)-0.4)
-
-# generate directly using GeometryBasics API
-# Rect specifies the sampling intervals
-gy_mesh = Mesh(gyroid_shell, Rect(Vec(0,0,0),Vec(pi*4,pi*4,pi*4)),
-                       MarchingCubes(), samples=(50,50,50))
-
-save("gyroid.ply", gy_mesh)
-
-# view with Makie
-import Makie
-using LinearAlgebra
-Makie.mesh(gy_mesh, color=[norm(v) for v in coordinates(gy_mesh)])
-```
-
-![gyroid](./img/gyroid.png)
-
-
-## Isocaps
+## Gyroid and Isocaps
 
 We do not provide an equivalent to `isocaps` in Matlab, though
 a similar result may be achieved by setting the boundary to a large value:
@@ -79,10 +53,10 @@ A[end,:,:] .= 1e10
 A[:,end,:] .= 1e10
 A[:,:,end] .= 1e10
 
-gy_mesh = GLNormalMesh(A, MarchingCubes())
+vts, fcs = isosurface(A, MarchingCubes())
 
 # view with Makie
-import Makie
+import WGLMakie
 using LinearAlgebra
-Makie.mesh(gy_mesh, color=[norm(v) for v in gy_mesh.vertices])
+WGLMakie.mesh(vts, map(v -> GeometryBasics.TriangleFace(v...), fcs), color=[norm(v) for v in v])
 ```
