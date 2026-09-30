@@ -27,3 +27,34 @@ Called after `_get_cubeindex`. Determines if a voxel index has triangles.
 @inline function _no_triangles(cubeindex::UInt8)
     cubeindex == 0x00 || cubeindex == 0xff
 end
+
+"""
+    smooth_sdf(sdf; sigma=0.7)
+
+`sdf` blurred by a Gaussian of `sigma` voxels, edges clamped. Suppresses the banding a
+grid-aligned level set gives the extracted surface. `sigma < 0.3` returns a copy.
+"""
+function smooth_sdf(sdf::AbstractArray{T,3}; sigma::Real=0.7) where {T}
+    sigma < 0.3 && return copy(sdf)
+    r = ceil(Int, 3sigma)
+    w = [exp(-(k / sigma)^2 / 2) for k in -r:r]
+    w = float(T).(w ./ sum(w))
+    a, b = similar(sdf, float(T)), similar(sdf, float(T))
+    blur!(a, sdf, w, 1)
+    blur!(b, a, w, 2)
+    blur!(a, b, w, 3)
+end
+
+function blur!(dst, src, w, axis)
+    r = length(w) ÷ 2
+    n = size(src, axis)
+    @inbounds for I in CartesianIndices(src)
+        acc = zero(eltype(dst))
+        for k in -r:r
+            J = CartesianIndex(ntuple(a -> a == axis ? clamp(I[a] + k, 1, n) : I[a], Val(3)))
+            acc += w[k+r+1] * src[J]
+        end
+        dst[I] = acc
+    end
+    dst
+end
