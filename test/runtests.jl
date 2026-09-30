@@ -167,8 +167,14 @@ end
 
     points, faces = isosurface(distance, MarchingTetrahedra(iso=lambda))
 
-    @test length(points) == 3466
-    @test length(faces) == 6928
+    # watertight: every edge in exactly two faces. Not counts or topology: `MersenneTwister(0)`
+    # draws a different stream since Julia 1.11, and the noise decides both.
+    edges = Dict{Tuple{Int,Int},Int}()
+    for f in faces, e in ((f[1], f[2]), (f[2], f[3]), (f[3], f[1]))
+        edges[minmax(e...)] = get(edges, minmax(e...), 0) + 1
+    end
+    @test length(faces) > 1000
+    @test all(==(2), values(edges))
 end
 
 @testset "MarchingCubes reduceverts" begin
