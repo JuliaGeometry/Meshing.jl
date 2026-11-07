@@ -1,8 +1,8 @@
 using Meshing
 using Test
 using ForwardDiff
-using Statistics: mean
-using LinearAlgebra: dot, norm
+using Statistics: mean, std
+using LinearAlgebra: dot, norm, normalize
 using Random
 
 const algos = (MarchingCubes, MarchingTetrahedra)
@@ -167,7 +167,46 @@ end
 
     points, faces = isosurface(distance, MarchingTetrahedra(iso=lambda))
 
-    @test length(points) == 3466
-    @test length(faces) == 6928
+    # watertight: every edge in exactly two faces. Not counts or topology: `MersenneTwister(0)`
+    # draws a different stream since Julia 1.11, and the noise decides both.
+    edges = Dict{Tuple{Int,Int},Int}()
+    for f in faces, e in ((f[1], f[2]), (f[2], f[3]), (f[3], f[1]))
+        edges[minmax(e...)] = get(edges, minmax(e...), 0) + 1
+    end
+    @test length(faces) > 1000
+    @test all(==(2), values(edges))
 end
 
+@testset "MarchingCubes reduceverts" begin
+    @test MarchingCubes(0.5) == MarchingCubes(iso=0.5)
+    p, f = isosurface(sphere_sdf, MarchingCubes())
+    pr, fr = isosurface(sphere_sdf, MarchingCubes(reduceverts=true))
+    # face for face the same triangles (a shared edge is interpolated from either end)
+    @test length(fr) == length(f)
+    @test maximum(i -> maximum(k -> maximum(abs, pr[fr[i][k]] .- p[f[i][k]]), 1:3), eachindex(f)) < 1e-12
+    # one vertex per crossed grid edge
+    crossed(d) = count(I -> checkbounds(Bool, sphere_sdf, I + d) && (sphere_sdf[I] < 0) != (sphere_sdf[I+d] < 0),
+                       CartesianIndices(sphere_sdf))
+    @test length(pr) == sum(crossed, (CartesianIndex(1, 0, 0), CartesianIndex(0, 1, 0), CartesianIndex(0, 0, 1)))
+end
+
+@testset "isosurface_normals" begin
+    for reduceverts in (false, true)
+        method = MarchingCubes(; reduceverts)
+        p, f, n = isosurface_normals(sphere_sdf, method)
+        @test (p, f) == isosurface(sphere_sdf, method)
+        @test all(v -> norm(v) ≈ 1, n)
+        @test minimum(i -> dot(collect(n[i]), normalize(collect(p[i]))), eachindex(p)) > 0.999
+    end
+    # z spacing doubled: an ellipsoid, whose normal at (x, y, z) is along (x, y, z/4)
+    p, f, n = isosurface_normals(sphere_sdf, MarchingCubes(), -1:1, -1:1, -2:2)
+    @test minimum(i -> dot(collect(n[i]), normalize([p[i][1], p[i][2], p[i][3] / 4])), eachindex(p)) > 0.999
+end
+
+@testset "smooth_sdf" begin
+    @test smooth_sdf(sphere_sdf; sigma=0.1) == sphere_sdf
+    noisy = sphere_sdf .+ 0.02 .* randn(MersenneTwister(0), size(sphere_sdf))
+    s = smooth_sdf(noisy; sigma=1.0)
+    @test std(s .- sphere_sdf) < std(noisy .- sphere_sdf) / 2
+    @test mean(s) ≈ mean(noisy) atol=1e-3
+end

@@ -7,6 +7,8 @@ include("marching_cubes.jl")
 include("isosurface.jl")
 
 export isosurface,
+       isosurface_normals,
+       smooth_sdf,
        MarchingCubes,
        MarchingTetrahedra
 
